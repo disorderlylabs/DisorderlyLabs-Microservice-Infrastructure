@@ -1,0 +1,47 @@
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+## OSX ##
+.DS_Store
+
+## Docker ##
+*.exe
+*.exe~
+*.orig
+test.main
+.*.swp
+.bashrc
+.editorconfig
+.gopath/
+.go-pkg-cache/
+autogen/
+bundles/
+cmd/dockerd/dockerd
+contrib/builder/rpm/*/changelog
+dockerversion/version_autogen.go
+dockerversion/version_autogen_unix.go
+vendor/pkg/
+hack/integration-cli-on-swarm/integration-cli-on-swarm
