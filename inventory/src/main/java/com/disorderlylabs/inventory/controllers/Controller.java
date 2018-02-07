@@ -32,7 +32,7 @@ public class Controller {
 
   @RequestMapping("/")
   public String index() {
-      return "Greetings from Spring Boot!";
+      return "Greetings from Inventory App!";
   }
 
   @RequestMapping(value = "/checkAvailibility", method = RequestMethod.GET)
@@ -65,7 +65,37 @@ public class Controller {
     {
       return e.toString();
     }
-  }  
+  }
+
+  @RequestMapping(value = "/getItemID", method = RequestMethod.GET)
+  public String getItemID(@RequestParam(value="name", required=true) String name) 
+  {
+    try
+    {
+      String sql = "select * from Catalog where name like '%" + name + "%'";
+      Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
+      return "{\"ItemID\": "+ c.getItemID()+"} ";
+    }
+    catch(Exception e)
+    {
+      return e.toString();
+    }
+  }    
+
+  @RequestMapping(value = "/getName", method = RequestMethod.GET)
+  public String getName(@RequestParam(value="ItemID", required=true) String ItemID) 
+  {
+    try
+    {
+      String sql = "select * from Catalog where ItemID=" + ItemID;
+      Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
+      return "{\"name\": \""+ c.getName()+"\"} ";
+    }
+    catch(Exception e)
+    {
+      return e.toString();
+    }
+  }
 
   @RequestMapping(value = "/takeFromInventory", method = RequestMethod.PUT)
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
@@ -79,12 +109,15 @@ public class Controller {
       o = parser.parse(checkPrice(name)).getAsJsonObject();
       double price = Double.parseDouble(o.get("price").toString());
 
+      o = parser.parse(getItemID(name)).getAsJsonObject();
+      int ItemID = Integer.parseInt(o.get("ItemID").toString());      
+
       if (available>=quantity)
       {
         int remaining = available - quantity;
         String sql = "update Catalog set quantity = " + remaining + " where name like '%" + name + "%'";
         jdbcTemplate.execute(sql);
-        return "{\"status\":\"success\",\"total_price\": "+ (price*quantity) +"} ";
+        return "{\"status\":\"success\",\"total_price\": "+ (price*quantity) +", \"ItemID\":"+ItemID+"} ";
       }
       else
       {
