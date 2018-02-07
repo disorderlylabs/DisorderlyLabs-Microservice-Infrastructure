@@ -1,6 +1,11 @@
 # DisorderlyLabs-Microservice-Infrastructure
 In-house MicroService Infrastructure for Disorderly Labs
 
+## Prerequisites 
+1. JDK 6+
+2. Gradle
+3. Docker
+
 ## Build the images
 Go to individual folders and execute `./gradlew build docker`. You can configure the name of your docker image in the `build.gradle` of each microservice.
 
