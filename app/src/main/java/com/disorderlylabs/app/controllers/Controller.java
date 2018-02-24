@@ -36,25 +36,32 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
-  private static final String inventory_URL = "http://localhost:7002";
+  private static final String inventory_URL = System.getenv("inventory_ip");
+  private static final String cart_URL = System.getenv("cart_ip");
+  private static final String invoice_URL = System.getenv("invoice_ip");
 
-  @RequestMapping("/")
+  @RequestMapping("/app")
   public String index() {
       return "Greetings from App Microservice!";
   }
 
-  @RequestMapping("/checkEnv")
-  public String checkEnv() {
-      return System.getenv("inventory_ip") + "";
+  @RequestMapping("/app/checkEnv")
+  public String checkEnv() 
+  {
+    String ans = "";
+    for (String key : System.getenv().keySet())
+      ans = ans + key + " : " + System.getenv(key) + "\n";
+    return ans;
+    // return System.getenv("inventory_ip") + "";
   }
 
   //******--------For this particular request 'App' is acting like a forwarding node to 'Inventory'--------******.
-  @RequestMapping(value = "/takeFromInventory", method = RequestMethod.PUT)
+  @RequestMapping(value = "/app/takeFromInventory", method = RequestMethod.PUT)
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try
     {
-      String url = "http://" + System.getenv("inventory_ip") + "/takeFromInventory";
+      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
       HttpClient client = new DefaultHttpClient();
       HttpPut put = new HttpPut(url);
 
@@ -78,7 +85,7 @@ public class Controller {
   {
     try
     {
-      String url = "http://" + System.getenv("inventory_ip") + "/takeFromInventory";
+      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
       HttpClient client = new DefaultHttpClient();
       HttpPut put = new HttpPut(url);
 
@@ -88,13 +95,16 @@ public class Controller {
 
       put.setEntity(new UrlEncodedFormEntity(urlParameters));
       HttpResponse response = client.execute(put);
-
       JsonParser parser = new JsonParser();
-      JsonObject o = parser.parse(convertToString(response)).getAsJsonObject();
+      String res = convertToString(response);
+      JsonObject o = parser.parse(res).getAsJsonObject();
+
+      if(o.get("status").toString().contains("failure"))
+        return res;
       int ItemID = Integer.parseInt(o.get("ItemID").toString());
       double total_price = Double.parseDouble(o.get("total_price").toString());
 
-      url = "http://" + System.getenv("cart_ip") + "/addToCart";
+      url = "http://" + cart_URL + "/cart/addToCart";
       put = new HttpPut(url);
       urlParameters = new ArrayList<NameValuePair>();
       urlParameters.add(new BasicNameValuePair("ItemID", ItemID + ""));
@@ -106,8 +116,64 @@ public class Controller {
     }
     catch(Exception e)
     {
-      return e.toString();
+      return "{\"status\":\"failure at app: Could not add to cart because of " + e.toString() + "\"}";
     }    
+  }
+
+  @RequestMapping(value = "/app/instantPlaceOrder", method = RequestMethod.PUT)
+  public String instantPlaceOrder(@RequestParam(value="name") String name, @RequestParam(value="quantity") int quantity) 
+  {
+    try
+    {
+      if (name != null)
+      {
+        String res = addToCart(name, quantity);
+        JsonParser parser = new JsonParser();
+        JsonObject o = parser.parse(res).getAsJsonObject();
+        if(o.get("status").toString().contains("failure"))
+        return res;        
+      }  
+
+      return placeOrder();   
+    }
+    catch(Exception e)
+    {
+      return "{\"status\":\"failure at app: Could not place instant order because of " + e.toString() + "\"}";
+    }
+  }
+
+  @RequestMapping(value = "/app/placeOrder", method = RequestMethod.PUT)
+  public String placeOrder() 
+  {
+    try
+    {
+      String url = "http://" + cart_URL + "/cart/placeOrder";
+      HttpClient client = new DefaultHttpClient();
+      HttpPut put = new HttpPut(url);
+      HttpResponse response = client.execute(put);
+      return convertToString(response);   
+    }
+    catch(Exception e)
+    {
+      return "{\"status\":\"failure at app: Could not place order because of " + e.toString() + "\"}";
+    }
+  }     
+
+  @RequestMapping(value = "/app/getInvoice")
+  public String getInvoice() 
+  {
+    try
+    {
+      String url = "http://" + invoice_URL + "/invoice/getInvoice";
+      HttpClient client = new DefaultHttpClient();
+      HttpGet get = new HttpGet(url);
+      HttpResponse response = client.execute(get);
+      return convertToString(response);   
+    }
+    catch(Exception e)
+    {
+      return "{\"status\":\"failure at app: Could not invoice because of " + e.toString() + "\"}";
+    }
   }
 
   String convertToString(HttpResponse response) throws IOException

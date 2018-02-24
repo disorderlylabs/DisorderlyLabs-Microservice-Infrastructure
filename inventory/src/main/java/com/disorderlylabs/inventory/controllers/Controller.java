@@ -30,12 +30,12 @@ public class Controller {
   @Autowired
   JdbcTemplate jdbcTemplate;
 
-  @RequestMapping("/")
+  @RequestMapping("/inventory")
   public String index() {
       return "Greetings from Inventory App!";
   }
 
-  @RequestMapping(value = "/checkAvailibility", method = RequestMethod.GET)
+  @RequestMapping(value = "/inventory/checkAvailibility", method = RequestMethod.GET)
   public String checkAvailibility(@RequestParam(value="name", required=true) String name) 
   {
     try
@@ -52,7 +52,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/checkPrice", method = RequestMethod.GET)
+  @RequestMapping(value = "/inventory/checkPrice", method = RequestMethod.GET)
   public String checkPrice(@RequestParam(value="name", required=true) String name) 
   {
     try
@@ -67,7 +67,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/getItemID", method = RequestMethod.GET)
+  @RequestMapping(value = "/inventory/getItemID", method = RequestMethod.GET)
   public String getItemID(@RequestParam(value="name", required=true) String name) 
   {
     try
@@ -82,7 +82,7 @@ public class Controller {
     }
   }    
 
-  @RequestMapping(value = "/getName", method = RequestMethod.GET)
+  @RequestMapping(value = "/inventory/getName", method = RequestMethod.GET)
   public String getName(@RequestParam(value="ItemID", required=true) String ItemID) 
   {
     try
@@ -97,7 +97,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/takeFromInventory", method = RequestMethod.PUT)
+  @RequestMapping(value = "/inventory/takeFromInventory", method = RequestMethod.PUT)
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try
@@ -121,12 +121,12 @@ public class Controller {
       }
       else
       {
-        return "{\"status\":\"error\",\"reason\":\"Not enough in inventory\"}";
+        return "{\"status\":\"failure : Not enough in inventory\"}";
       }
     }
     catch(Exception e)
     {
-      return e.toString();
+      return "{\"status\":\"failure at inventory: Could not take from inventory because of " + e.toString() + "\"}";
     }
   }  
 

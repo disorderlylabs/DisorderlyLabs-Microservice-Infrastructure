@@ -6,6 +6,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import com.disorderlylabs.cart.mappers.CartMapper;
 import com.disorderlylabs.cart.repositories.Cart;
@@ -29,13 +33,15 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
+  private static final String pg_URL = System.getenv("pg_ip");
+  private static final String invoice_URL = System.getenv("invoice_ip");
 
-  @RequestMapping("/")
+  @RequestMapping("/cart")
   public String index() {
       return "Greetings from Cart App!";
   }
 
-  @RequestMapping(value = "/addToCart", method = RequestMethod.PUT)
+  @RequestMapping(value = "/cart/addToCart", method = RequestMethod.PUT)
   public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
     try
@@ -50,21 +56,51 @@ public class Controller {
     }
   }  
 
-  @RequestMapping(value = "/getCartItems", method = RequestMethod.GET)
-  public String addToCart()
+  @RequestMapping(value = "/cart/getCartItems", method = RequestMethod.GET)
+  public ArrayList<Cart> getCartItems()
   {
     try
     {
       String sql = "select * from cart";
       ArrayList<Cart> cartItems = new ArrayList<Cart>(jdbcTemplate.query(sql, new CartMapper()));
-      String ans = "";
-      for (Cart cart: cartItems)
-        ans = ans + cart.toString();
-      return ans;
+      return cartItems;
     }
     catch(Exception e)
     {
-      return e.getMessage();
+      return null;
+    }
+  }
+
+  @RequestMapping(value = "/cart/placeOrder", method = RequestMethod.PUT)
+  public String placeOrder()
+  {
+    try
+    {
+      ArrayList<Cart> cartItems = getCartItems();
+      double final_price = 0;
+      for (Cart cart: cartItems)
+        final_price = final_price + cart.getTotalPrice();
+
+      String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
+      HttpClient client = new DefaultHttpClient();
+      HttpGet get = new HttpGet(url);
+      HttpResponse response = client.execute(get);
+      String res = convertToString(response);
+      
+      JsonParser parser = new JsonParser();
+      JsonObject o = parser.parse(res).getAsJsonObject();
+      if((o.get("status").toString()).contains("failure"))
+        return res;
+
+      url = "http://" + invoice_URL + "/invoice/generateInvoice";
+      get = new HttpGet(url);
+      response = client.execute(get);
+      return convertToString(response);
+
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"Failure: Could not place order at cart because of " + e.toString() + " \"}";
     }
   }
 
@@ -79,5 +115,21 @@ public class Controller {
       return results;
     }
     return null;
-  }    
+  }
+
+  String convertToString(HttpResponse response) throws IOException
+  {
+    if(response!=null)
+    {
+      BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+      String line = "";
+      String line2 = "";
+      while ((line = rd.readLine()) != null) 
+      {
+        line2+=line+"\n";
+      }
+      return line2;
+    }
+    return "";
+  }        
 }
