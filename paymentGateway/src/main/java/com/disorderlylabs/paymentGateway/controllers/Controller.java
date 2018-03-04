@@ -26,8 +26,9 @@ public class Controller {
 
       Thread.sleep(2000); //Intentional sleep to payment processing
 
-      if (x == 0)
-        return "{\"status\":\"Payment failure\"}";
+      // if (x == 0)
+      //   return "{\"status\":\"Payment failure\"}";
+      //Commenting the above two lines to make sure payment returns consistent result
 
       return "{\"status\":\"A payment of $" + total_price + " was successful\"}";
     }
