@@ -74,7 +74,7 @@ public class Controller {
     {
       String sql = "select * from Catalog where name like '%" + name + "%'";
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
-      return "{\"ItemID\": "+ c.getItemID()+"} ";
+      return "{\"itemid\": "+ c.getItemID()+"} ";
     }
     catch(Exception e)
     {
@@ -95,7 +95,7 @@ public class Controller {
     {
       return e.toString();
     }
-  }
+  }  
 
   @RequestMapping(value = "/inventory/takeFromInventory", method = RequestMethod.PUT)
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
@@ -110,7 +110,7 @@ public class Controller {
       double price = Double.parseDouble(o.get("price").toString());
 
       o = parser.parse(getItemID(name)).getAsJsonObject();
-      int ItemID = Integer.parseInt(o.get("ItemID").toString());      
+      int ItemID = Integer.parseInt(o.get("itemid").toString());      
 
       if (available>=quantity)
       {
@@ -121,7 +121,7 @@ public class Controller {
       }
       else
       {
-        return "{\"status\":\"failure : Not enough in inventory\"}";
+        return "{\"status\":\"failure\",\"message\":\"Not enough in inventory\"}";
       }
     }
     catch(Exception e)
@@ -129,6 +129,43 @@ public class Controller {
       return "{\"status\":\"failure at inventory: Could not take from inventory because of " + e.toString() + "\"}";
     }
   }  
+
+  @RequestMapping(value = "/inventory/refreshCatalog", method = RequestMethod.PUT)
+  public String refreshCatalog() 
+  {
+    try
+    {
+      String sql = "DELETE FROM catalog";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (001, \'HP - Philosophers stone\', 10, 5.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (002, \'HP - Chamber of Secrets\', 10, 6.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (003, \'HP - Prisoner of Askaban\', 10, 7.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (004, \'HP - Goblet of Fire\', 10, 8.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (005, \'HP - Order of Pheonix\', 10, 9.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (006, \'HP - Half Blood Prince\', 10, 10.5 )";
+      jdbcTemplate.execute(sql);
+
+      sql = "insert into catalog values (007, \'HP - Deathly Hallows\', 10, 11.5 )";
+      jdbcTemplate.execute(sql);
+      
+      return "{\"status\":\"success\"}";      
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure "+ e.toString()+" \"}";
+    }
+  }
 
   JsonArray convertToJsonArray(HttpResponse response) throws IOException
   {

@@ -56,6 +56,21 @@ public class Controller {
     }
   }  
 
+  @RequestMapping(value = "/cart/emptyCart", method = RequestMethod.DELETE)
+  public String emptyCart()
+  {
+    try
+    {
+      String sql = "DELETE FROM cart";
+      jdbcTemplate.execute(sql);
+      return "{\"status\":\"success\"}";      
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure "+ e.toString()+" \"}";
+    }
+  }
+
   @RequestMapping(value = "/cart/getCartItems", method = RequestMethod.GET)
   public ArrayList<Cart> getCartItems()
   {
@@ -78,6 +93,9 @@ public class Controller {
     {
       ArrayList<Cart> cartItems = getCartItems();
       double final_price = 0;
+
+      if (cartItems.size() == 0)
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";        
       for (Cart cart: cartItems)
         final_price = final_price + cart.getTotalPrice();
 
@@ -95,6 +113,12 @@ public class Controller {
       url = "http://" + invoice_URL + "/invoice/generateInvoice";
       get = new HttpGet(url);
       response = client.execute(get);
+
+      String res2 = emptyCart();
+      o = parser.parse(res2).getAsJsonObject();
+      if(o.get("status").toString().contains("failure"))
+        return res2;
+
       return convertToString(response);
 
     }

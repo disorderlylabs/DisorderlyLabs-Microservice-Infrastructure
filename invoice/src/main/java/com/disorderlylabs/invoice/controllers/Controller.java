@@ -92,6 +92,12 @@ private static String invoice_data = "";
       return invoice_data;
   }
 
+  @RequestMapping("/invoice/clearInvoice")
+  public void clearInvoice() 
+  {
+    invoice_data = "";
+  }  
+
   String convertToString(HttpResponse response) throws IOException
   {
     if(response!=null)

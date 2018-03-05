@@ -30,7 +30,7 @@ public class Controller {
       //   return "{\"status\":\"Payment failure\"}";
       //Commenting the above two lines to make sure payment returns consistent result
 
-      return "{\"status\":\"A payment of $" + total_price + " was successful\"}";
+      return "{\"status\":\"success\", \"message\":\"A payment of $" + total_price + " was successful\"}";
     }
 
     catch(Exception e)

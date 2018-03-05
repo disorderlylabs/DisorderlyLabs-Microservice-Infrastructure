@@ -168,7 +168,11 @@ public class Controller {
       HttpClient client = new DefaultHttpClient();
       HttpGet get = new HttpGet(url);
       HttpResponse response = client.execute(get);
-      return convertToString(response);   
+      String res = convertToString(response);
+      if (res.contains("not generated"))
+        return res.replace("\n","");
+      else
+        return res;
     }
     catch(Exception e)
     {
