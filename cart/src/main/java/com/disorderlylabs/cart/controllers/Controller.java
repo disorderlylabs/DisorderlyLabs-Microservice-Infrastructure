@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.http.util.EntityUtils; 
 import org.apache.http.HttpResponse;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,6 +31,10 @@ import java.io.InputStreamReader;
 
 @RestController
 public class Controller {
+
+
+  @Autowired
+  RestTemplate restTemplate;
 
   @Autowired
   JdbcTemplate jdbcTemplate;
@@ -41,7 +46,7 @@ public class Controller {
       return "Greetings from Cart App!";
   }
 
-  @RequestMapping(value = "/cart/addToCart", method = RequestMethod.PUT)
+  @RequestMapping(value = "/cart/addToCart", method = RequestMethod.POST)
   public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
     try
@@ -86,7 +91,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/cart/placeOrder", method = RequestMethod.PUT)
+  @RequestMapping(value = "/cart/placeOrder", method = RequestMethod.GET)
   public String placeOrder()
   {
     try
@@ -100,26 +105,27 @@ public class Controller {
         final_price = final_price + cart.getTotalPrice();
 
       String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
+//      HttpClient client = new DefaultHttpClient();
+//      HttpGet get = new HttpGet(url);
+//      HttpResponse response = client.execute(get);
+//      String res = convertToString(response);
+      String response = restTemplate.getForObject(url, String.class);
+
       
       JsonParser parser = new JsonParser();
-      JsonObject o = parser.parse(res).getAsJsonObject();
+      JsonObject o = parser.parse(response).getAsJsonObject();
       if((o.get("status").toString()).contains("failure"))
-        return res;
+        return response;
 
       url = "http://" + invoice_URL + "/invoice/generateInvoice";
-      get = new HttpGet(url);
-      response = client.execute(get);
+      response = restTemplate.getForObject(url, String.class);
 
       String res2 = emptyCart();
       o = parser.parse(res2).getAsJsonObject();
       if(o.get("status").toString().contains("failure"))
         return res2;
 
-      return convertToString(response);
+      return response;
 
     }
     catch (Exception e)

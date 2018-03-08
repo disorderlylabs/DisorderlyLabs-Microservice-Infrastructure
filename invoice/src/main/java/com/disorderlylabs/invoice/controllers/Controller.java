@@ -1,5 +1,6 @@
 package com.disorderlylabs.invoice.controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,7 +29,10 @@ public class Controller {
 
 private static final String cart_URL = System.getenv("cart_ip");
 private static final String inventory_URL = System.getenv("inventory_ip");
-private static String invoice_data = ""; 
+private static String invoice_data = "";
+
+  @Autowired
+  RestTemplate restTemplate;
 
   @RequestMapping("/invoice")
   public String index() {
@@ -40,13 +45,10 @@ private static String invoice_data = "";
     try
     {
       String url = "http://" + cart_URL + "/cart/getCartItems";
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
+      String response = restTemplate.getForObject(url, String.class);
 
       JsonParser parser = new JsonParser();
-      JsonElement e = parser.parse(res);
+      JsonElement e = parser.parse(response);
       double final_price = 0;
       invoice_data = "Name\t|\tQuantity\t|\tPrice\n";
       invoice_data = invoice_data + "--------------------------------------------\n";
@@ -59,11 +61,9 @@ private static String invoice_data = "";
           int ItemID = Integer.parseInt(o.get("itemID").toString());
           int quantity = Integer.parseInt(o.get("quantity").toString());
           double total_price = Double.parseDouble(o.get("totalPrice").toString());  
-          url = "http://" + inventory_URL + "/inventory/getName?ItemID="+ItemID;          
-          get = new HttpGet(url);
-          response = client.execute(get);
-          res = convertToString(response);
-          o = parser.parse(res).getAsJsonObject();
+          url = "http://" + inventory_URL + "/inventory/getName?ItemID="+ItemID;
+          response = restTemplate.getForObject(url, String.class);
+          o = parser.parse(response).getAsJsonObject();
           String name = o.get("name").toString();
           final_price = final_price + total_price;
           invoice_data = invoice_data + name +"\t|"+ quantity +"\t|"+ total_price + "\n";                      

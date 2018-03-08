@@ -97,7 +97,7 @@ public class Controller {
     }
   }  
 
-  @RequestMapping(value = "/inventory/takeFromInventory", method = RequestMethod.PUT)
+  @RequestMapping(value = "/inventory/takeFromInventory", method = RequestMethod.POST)
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try

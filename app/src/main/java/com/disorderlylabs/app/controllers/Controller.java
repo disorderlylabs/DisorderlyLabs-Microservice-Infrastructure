@@ -149,7 +149,7 @@ public class Controller {
 
       ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
 
-
+      System.out.println("[app/addtocart] response: " + response.toString());
 
 
 
