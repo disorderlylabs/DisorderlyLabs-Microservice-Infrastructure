@@ -1,5 +1,6 @@
 package com.disorderlylabs.app;
 
+import com.disorderlylabs.app.faultInjection.PropagationData;
 import com.disorderlylabs.app.faultInjection.TracingClientHttpRequestInterceptor;
 import com.disorderlylabs.app.faultInjection.TracingHandlerInterceptor;
 
@@ -50,6 +51,12 @@ public class TracingConfiguration extends WebMvcConfigurerAdapter {
     return AsyncReporter.create(sender());
   }
 
+  @Bean
+  PropagationData propagationData() {
+    System.out.println("[LOG] constructing PropagationData");
+    return new PropagationData();
+  }
+
   /** Controls aspects of tracing such as the name that shows up in the UI */
   @Bean Tracing tracing(@Value("App") String serviceName) {
     System.out.println("[LOG]: creating new tracing variable");
@@ -63,6 +70,7 @@ public class TracingConfiguration extends WebMvcConfigurerAdapter {
   // decides how to name and tag spans. By default they are named the same as the http method.
   @Bean HttpTracing httpTracing(Tracing tracing) {
     System.out.println("[LOG]: Calling HttpTracing.create()");
+    System.out.println("Tracing variable: " + tracing.hashCode());
     return HttpTracing.create(tracing);
   }
 

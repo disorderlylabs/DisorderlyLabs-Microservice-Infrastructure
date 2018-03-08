@@ -26,6 +26,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -40,9 +41,29 @@ public class Controller {
   private static final String cart_URL = System.getenv("cart_ip");
   private static final String invoice_URL = System.getenv("invoice_ip");
 
+  @Autowired
+  RestTemplate restTemplate;
+
   @RequestMapping("/app")
   public String index() {
       return "Greetings from App Microservice!";
+  }
+
+  @RequestMapping("/app/test")
+  public String test() {
+      String response;
+
+      String inventory = "http://" + System.getenv("inventory_ip") + "/inventory";
+
+      String cart = "http://" + System.getenv("cart_ip") + "/cart";
+
+      response = restTemplate.getForObject(inventory, String.class);
+      System.out.println("Inventory response: " + response);
+
+      response = restTemplate.getForObject(cart, String.class);
+      System.out.println("cart response: " + response);
+
+      return response;
   }
 
   @RequestMapping("/app/checkEnv")
