@@ -1,6 +1,12 @@
 package com.disorderlylabs.app.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,18 +88,32 @@ public class Controller {
   {
     try
     {
+//      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
+//      HttpClient client = new DefaultHttpClient();
+//      HttpPut put = new HttpPut(url);
+//
+//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+//      urlParameters.add(new BasicNameValuePair("name", name));
+//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
+//
+//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
+//      HttpResponse response = client.execute(put);
+
+
+      //[NEW REQUEST CODE]
       String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-      HttpClient client = new DefaultHttpClient();
-      HttpPut put = new HttpPut(url);
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-      urlParameters.add(new BasicNameValuePair("name", name));
-      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
+      MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
+      map.add("name", name);
+      map.add("quantity", quantity + "");
 
-      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-      HttpResponse response = client.execute(put);
+      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
 
-      return convertToString(response);   
+      ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
+
+      return response.toString();
     }
     catch(Exception e)
     {
@@ -107,17 +127,35 @@ public class Controller {
     try
     {
       String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-      HttpClient client = new DefaultHttpClient();
-      HttpPut put = new HttpPut(url);
+//      HttpClient client = new DefaultHttpClient();
+//      HttpPut put = new HttpPut(url);
+//
+//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+//      urlParameters.add(new BasicNameValuePair("name", name));
+//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
+//
+//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
+//      HttpResponse response = client.execute(put);
 
-      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-      urlParameters.add(new BasicNameValuePair("name", name));
-      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
+      //[NEW REQUEST CODE]
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-      HttpResponse response = client.execute(put);
+      MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
+      map.add("name", name);
+      map.add("quantity", quantity + "");
+
+      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+
+      ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
+
+
+
+
+
+
       JsonParser parser = new JsonParser();
-      String res = convertToString(response);
+      String res = response.toString();
       JsonObject o = parser.parse(res).getAsJsonObject();
 
       if(o.get("status").toString().contains("failure"))
@@ -126,14 +164,30 @@ public class Controller {
       double total_price = Double.parseDouble(o.get("total_price").toString());
 
       url = "http://" + cart_URL + "/cart/addToCart";
-      put = new HttpPut(url);
-      urlParameters = new ArrayList<NameValuePair>();
-      urlParameters.add(new BasicNameValuePair("ItemID", ItemID + ""));
-      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-      urlParameters.add(new BasicNameValuePair("total_price", total_price + ""));
-      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-      response = client.execute(put);   
-      return convertToString(response);   
+
+
+
+//      put = new HttpPut(url);
+//      urlParameters = new ArrayList<NameValuePair>();
+//      urlParameters.add(new BasicNameValuePair("ItemID", ItemID + ""));
+//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
+//      urlParameters.add(new BasicNameValuePair("total_price", total_price + ""));
+//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
+//      response = client.execute(put);
+      //[NEW REQUEST CODE]
+      headers.clear(); //clearing the headers
+      map.clear();  //clearing the map for new parameters
+
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+      map.add("ItemID", ItemID + "");
+      map.add("quantity", quantity + "");
+      map.add("total_price", total_price + "");
+
+      request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+      response = restTemplate.postForEntity( url, request , String.class );
+
+      return response.toString();
     }
     catch(Exception e)
     {
@@ -169,10 +223,15 @@ public class Controller {
     try
     {
       String url = "http://" + cart_URL + "/cart/placeOrder";
-      HttpClient client = new DefaultHttpClient();
-      HttpPut put = new HttpPut(url);
-      HttpResponse response = client.execute(put);
-      return convertToString(response);   
+//      HttpClient client = new DefaultHttpClient();
+//      HttpPut put = new HttpPut(url);
+//      HttpResponse response = client.execute(put);
+
+      //[NEW REQUEST CODE]
+      String response = restTemplate.getForObject(url, String.class);
+
+
+      return response;
     }
     catch(Exception e)
     {
@@ -186,14 +245,17 @@ public class Controller {
     try
     {
       String url = "http://" + invoice_URL + "/invoice/getInvoice";
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
-      if (res.contains("not generated"))
-        return res.replace("\n","");
+//      HttpClient client = new DefaultHttpClient();
+//      HttpGet get = new HttpGet(url);
+//      HttpResponse response = client.execute(get);
+//      String res = convertToString(response);
+      //[NEW REQUEST CODE]
+      String response = restTemplate.getForObject(url, String.class);
+
+      if (response.contains("not generated"))
+        return response.replace("\n","");
       else
-        return res;
+        return response;
     }
     catch(Exception e)
     {
