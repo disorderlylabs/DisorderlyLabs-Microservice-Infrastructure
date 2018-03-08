@@ -39,6 +39,18 @@ private static String invoice_data = "";
       return "Greetings from Invoice Microservice!";
   }
 
+  @RequestMapping("/invoice/test")
+  public String test() {
+    String response;
+
+    String pg = "http://" + System.getenv("pg_ip") + "/pg";
+
+    response = restTemplate.getForObject(pg, String.class);
+    System.out.println("pg response: " + response);
+
+    return response;
+  }
+
   @RequestMapping("/invoice/generateInvoice")
   public String generateInvoice() 
   {

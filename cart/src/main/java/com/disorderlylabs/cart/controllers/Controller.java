@@ -46,6 +46,18 @@ public class Controller {
       return "Greetings from Cart App!";
   }
 
+  @RequestMapping("/cart/test")
+  public String test() {
+    String response;
+
+    String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
+
+    response = restTemplate.getForObject(invoice, String.class);
+    System.out.println("Inventory response: " + response);
+
+    return response;
+  }
+
   @RequestMapping(value = "/cart/addToCart", method = RequestMethod.POST)
   public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {

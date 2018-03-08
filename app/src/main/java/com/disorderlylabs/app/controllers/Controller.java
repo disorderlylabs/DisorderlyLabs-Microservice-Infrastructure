@@ -61,7 +61,7 @@ public class Controller {
 
       String inventory = "http://" + System.getenv("inventory_ip") + "/inventory";
 
-      String cart = "http://" + System.getenv("cart_ip") + "/cart";
+      String cart = "http://" + System.getenv("cart_ip") + "/cart/test";
 
       response = restTemplate.getForObject(inventory, String.class);
       System.out.println("Inventory response: " + response);
