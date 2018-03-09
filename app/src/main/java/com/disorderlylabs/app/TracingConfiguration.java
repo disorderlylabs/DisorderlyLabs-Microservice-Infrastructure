@@ -1,6 +1,6 @@
 package com.disorderlylabs.app;
 
-import com.disorderlylabs.app.faultInjection.PropagationData;
+import com.disorderlylabs.app.faultInjection.Propagation;
 import com.disorderlylabs.app.faultInjection.TracingClientHttpRequestInterceptor;
 import com.disorderlylabs.app.faultInjection.TracingHandlerInterceptor;
 
@@ -52,9 +52,9 @@ public class TracingConfiguration extends WebMvcConfigurerAdapter {
   }
 
   @Bean
-  PropagationData propagationData() {
-    System.out.println("[LOG] constructing PropagationData");
-    return new PropagationData();
+  Propagation propagationData() {
+    System.out.println("[LOG] constructing Propagation");
+    return new Propagation();
   }
 
   /** Controls aspects of tracing such as the name that shows up in the UI */
