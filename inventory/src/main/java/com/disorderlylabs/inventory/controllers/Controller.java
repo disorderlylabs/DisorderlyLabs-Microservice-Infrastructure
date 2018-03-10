@@ -40,7 +40,7 @@ public class Controller {
   {
     try
     {
-      String sql = "select * from Catalog where name like '%" + name + "%'";
+      String sql = "select * from catalog where name like '%" + name + "%'";
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"quantity\": "+ c.getQuantity()+"} ";
 
@@ -56,7 +56,7 @@ public class Controller {
   {
     try
     {
-      String sql = "select * from Catalog where ItemID=" + ItemID;
+      String sql = "select * from catalog where ItemID=" + ItemID;
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"quantity\": "+ c.getQuantity()+"} ";
 
@@ -72,7 +72,7 @@ public class Controller {
   {
     try
     {
-      String sql = "select * from Catalog where name like '%" + name + "%'";
+      String sql = "select * from catalog where name like '%" + name + "%'";
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"price\": "+ c.getPrice()+"} ";
     }
@@ -87,7 +87,7 @@ public class Controller {
   {
     try
     {
-      String sql = "select * from Catalog where name like '%" + name + "%'";
+      String sql = "select * from catalog where name like '%" + name + "%'";
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"itemid\": "+ c.getItemID()+"} ";
     }
@@ -102,7 +102,7 @@ public class Controller {
   {
     try
     {
-      String sql = "select * from Catalog where ItemID=" + ItemID;
+      String sql = "select * from catalog where ItemID=" + ItemID;
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"name\": \""+ c.getName()+"\"} ";
     }
@@ -130,7 +130,7 @@ public class Controller {
       if (available>=quantity)
       {
         int remaining = available - quantity;
-        String sql = "update Catalog set quantity = " + remaining + " where name like '%" + name + "%'";
+        String sql = "update catalog set quantity = " + remaining + " where name like '%" + name + "%'";
         jdbcTemplate.execute(sql);
         return "{\"status\":\"success\",\"total_price\": "+ (price*quantity) +", \"ItemID\":"+ItemID+"} ";
       }
@@ -155,7 +155,7 @@ public class Controller {
       int available = Integer.parseInt(o.get("quantity").toString());
 
       int new_quantity = available + quantity;
-      String sql = "update Catalog set quantity = " + new_quantity + " where ItemID=" + ItemID;
+      String sql = "update catalog set quantity = " + new_quantity + " where ItemID=" + ItemID;
       jdbcTemplate.execute(sql);
       return "{\"status\":\"success\"}";
     }
