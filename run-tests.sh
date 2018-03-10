@@ -17,3 +17,5 @@ python unittest_invoice.py
 cd ../integrationtests
 echo "Running Integration Tests:"
 python integration-tests.py  
+
+echo "Don't forget to check Zipkin Traces!"

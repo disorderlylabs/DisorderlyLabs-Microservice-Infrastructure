@@ -37,12 +37,15 @@ import zipkin2.reporter.okhttp3.OkHttpSender;
 // Importing these classes is effectively the same as declaring bean methods
 @Import({TracingClientHttpRequestInterceptor.class, TracingHandlerInterceptor.class})
 public class TracingConfiguration extends WebMvcConfigurerAdapter {
+  
+  private static final String zipkin_URL = System.getenv("zipkin_ip");
+
   @Bean
   RestTemplate template() { return new RestTemplate(); }
 
   /** Configuration for how to send spans to Zipkin */
   @Bean Sender sender() {
-    return OkHttpSender.create("http://172.17.0.1:9411/api/v2/spans");
+    return OkHttpSender.create("http://"+zipkin_URL+"/api/v2/spans");
   }
 
   /** Configuration for how to buffer spans into messages for Zipkin */
