@@ -6,13 +6,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+
 import com.disorderlylabs.cart.mappers.CartMapper;
 import com.disorderlylabs.cart.repositories.Cart;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -21,6 +22,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import org.apache.http.util.EntityUtils; 
 import org.apache.http.HttpResponse;
 
@@ -33,15 +35,18 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
+
+  private RestTemplate restTemplate = new RestTemplate();
   private static final String pg_URL = System.getenv("pg_ip");
   private static final String invoice_URL = System.getenv("invoice_ip");
+  private static final String inventory_URL = System.getenv("inventory_ip");
 
   @RequestMapping("/cart")
   public String index() {
       return "Greetings from Cart App!";
   }
 
-  @RequestMapping(value = "/cart/addToCart", method = RequestMethod.PUT)
+  @RequestMapping(value = "/cart/addToCart", method = {RequestMethod.PUT, RequestMethod.POST})
   public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
     try
@@ -69,7 +74,7 @@ public class Controller {
     {
       return "{\"status\":\"failure "+ e.toString()+" \"}";
     }
-  }
+  }  
 
   @RequestMapping(value = "/cart/getCartItems", method = RequestMethod.GET)
   public ArrayList<Cart> getCartItems()
@@ -86,7 +91,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/cart/placeOrder", method = RequestMethod.PUT)
+  @RequestMapping(value = "/cart/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder()
   {
     try
@@ -95,36 +100,69 @@ public class Controller {
       double final_price = 0;
 
       if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";        
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+
       for (Cart cart: cartItems)
         final_price = final_price + cart.getTotalPrice();
 
       String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
-      
+      ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+      String res = response.getBody();
+
       JsonParser parser = new JsonParser();
       JsonObject o = parser.parse(res).getAsJsonObject();
       if((o.get("status").toString()).contains("failure"))
         return res;
 
       url = "http://" + invoice_URL + "/invoice/generateInvoice";
-      get = new HttpGet(url);
-      response = client.execute(get);
+      response = restTemplate.getForEntity(url, String.class);
+      res = response.getBody();
 
       String res2 = emptyCart();
       o = parser.parse(res2).getAsJsonObject();
       if(o.get("status").toString().contains("failure"))
         return res2;
 
-      return convertToString(response);
+      return res;
 
     }
     catch (Exception e)
     {
       return "{\"status\":\"Failure: Could not place order at cart because of " + e.toString() + " \"}";
+    }
+  }
+
+  @RequestMapping(value = "/cart/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String undoCart()
+  {
+    try
+    {
+      ArrayList<Cart> cartItems = getCartItems();
+
+      if (cartItems.size() == 0)
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+
+      for (Cart cart: cartItems)
+      {  
+        int quantity = cart.getQuantity();
+        int ItemID = cart.getItemID();
+
+        String url = "http://" + inventory_URL + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
+        HttpEntity<String> request = new HttpEntity<>("");
+        String res = restTemplate.postForObject(url, request, String.class);
+
+        JsonParser parser = new JsonParser();
+        JsonObject o = parser.parse(res).getAsJsonObject();
+        if((o.get("status").toString()).contains("failure"))
+          return res;                
+      }
+
+      String res2 = emptyCart();
+      return res2;      
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure\"}";
     }
   }
 

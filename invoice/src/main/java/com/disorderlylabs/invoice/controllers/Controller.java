@@ -13,9 +13,9 @@ import com.google.gson.JsonParser;
 
 import org.apache.http.util.EntityUtils; 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,7 +27,8 @@ public class Controller {
 
 private static final String cart_URL = System.getenv("cart_ip");
 private static final String inventory_URL = System.getenv("inventory_ip");
-private static String invoice_data = ""; 
+private static String invoice_data = "";
+private RestTemplate restTemplate = new RestTemplate(); 
 
   @RequestMapping("/invoice")
   public String index() {
@@ -40,10 +41,9 @@ private static String invoice_data = "";
     try
     {
       String url = "http://" + cart_URL + "/cart/getCartItems";
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
+      
+      ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+      String res = response.getBody();
 
       JsonParser parser = new JsonParser();
       JsonElement e = parser.parse(res);
@@ -60,9 +60,10 @@ private static String invoice_data = "";
           int quantity = Integer.parseInt(o.get("quantity").toString());
           double total_price = Double.parseDouble(o.get("totalPrice").toString());  
           url = "http://" + inventory_URL + "/inventory/getName?ItemID="+ItemID;          
-          get = new HttpGet(url);
-          response = client.execute(get);
-          res = convertToString(response);
+
+          response = restTemplate.getForEntity(url, String.class);
+          res = response.getBody();
+
           o = parser.parse(res).getAsJsonObject();
           String name = o.get("name").toString();
           final_price = final_price + total_price;
