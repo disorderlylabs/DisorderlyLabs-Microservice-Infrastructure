@@ -38,7 +38,7 @@ class unittest_inventory(unittest.TestCase):
       available = d['quantity']
 
       if available > 2: 
-        res = requests.put(url+'/inventory/takeFromInventory?name=Aska&quantity=2')
+        res = requests.post(url+'/inventory/takeFromInventory?name=Aska&quantity=2')
         d = res.json()
         self.assertEqual(d['status'],"success")
         self.assertEqual(d['total_price'],15)
@@ -52,7 +52,7 @@ class unittest_inventory(unittest.TestCase):
       d = res.json()
       available = d['quantity']
 
-      res = requests.put(url+'/inventory/takeFromInventory?name=Aska&quantity='+ str(available+1))
+      res = requests.post(url+'/inventory/takeFromInventory?name=Aska&quantity='+ str(available+1))
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"Not enough in inventory")

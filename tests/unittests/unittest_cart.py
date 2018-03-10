@@ -18,7 +18,7 @@ class unittest_cart(unittest.TestCase):
       self.assertEqual(res.text, 'Greetings from Cart App!') 
 
   def test_addToCart(self):
-      res = requests.put(url+'/cart/addToCart?ItemID=4&quantity=4&total_price=34')
+      res = requests.post(url+'/cart/addToCart?ItemID=4&quantity=4&total_price=34')
       d = res.json()
       self.assertEqual(d['status'],"success")
  
@@ -42,7 +42,7 @@ class unittest_cart(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")      
 
-      res = requests.put(url+'/cart/placeOrder')
+      res = requests.post(url+'/cart/placeOrder')
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"No items in cart")

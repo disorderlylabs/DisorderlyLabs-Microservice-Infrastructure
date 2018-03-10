@@ -40,7 +40,6 @@ public class Controller {
   {
     try
     {
-      //Approach 2
       String sql = "select * from Catalog where name like '%" + name + "%'";
       Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
       return "{\"quantity\": "+ c.getQuantity()+"} ";
@@ -51,6 +50,22 @@ public class Controller {
       return e.toString();
     }
   }
+
+  @RequestMapping(value = "/inventory/checkAvailibilityWithID", method = RequestMethod.GET)
+  public String checkAvailibilityWithID(@RequestParam(value="ItemID", required=true) int ItemID) 
+  {
+    try
+    {
+      String sql = "select * from Catalog where ItemID=" + ItemID;
+      Catalog c = (Catalog)jdbcTemplate.queryForObject(sql, new CatalogMapper());
+      return "{\"quantity\": "+ c.getQuantity()+"} ";
+
+    }
+    catch(Exception e)
+    {
+      return e.toString();
+    }
+  }  
 
   @RequestMapping(value = "/inventory/checkPrice", method = RequestMethod.GET)
   public String checkPrice(@RequestParam(value="name", required=true) String name) 
@@ -129,6 +144,26 @@ public class Controller {
       return "{\"status\":\"failure at inventory: Could not take from inventory because of " + e.toString() + "\"}";
     }
   }  
+
+  @RequestMapping(value = "/inventory/addBackToInventory", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String addBackToInventory(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity) 
+  {
+    try
+    {      
+      JsonParser parser = new JsonParser();
+      JsonObject o = parser.parse(checkAvailibilityWithID(ItemID)).getAsJsonObject();
+      int available = Integer.parseInt(o.get("quantity").toString());
+
+      int new_quantity = available + quantity;
+      String sql = "update Catalog set quantity = " + new_quantity + " where ItemID=" + ItemID;
+      jdbcTemplate.execute(sql);
+      return "{\"status\":\"success\"}";
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure at inventory: Could not add back to inventory because of "+ e.toString()+" \"}";
+    }
+  }
 
   @RequestMapping(value = "/inventory/refreshCatalog", method = RequestMethod.PUT)
   public String refreshCatalog() 

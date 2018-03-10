@@ -190,5 +190,62 @@ class integrationtests(unittest.TestCase):
       res = requests.get(app_url+'/app/getInvoice')
       self.assertEqual(res.text, 'Invoice not generated yet')
 
+  def test_undoCart_nothingCart(self):
+      res = requests.put(inventory_url+'/inventory/refreshCatalog')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.delete(cart_url+'/cart/emptyCart')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.put(app_url+'/app/undoCart')
+      d = res.json()
+      self.assertEqual(d['status'],"failure")
+      self.assertEqual(d['message'],"No items in cart")
+
+
+  def test_undoCart(self):
+      res = requests.put(inventory_url+'/inventory/refreshCatalog')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.delete(cart_url+'/cart/emptyCart')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.put(app_url+'/app/addToCart?name=Aska&quantity=3')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.put(app_url+'/app/addToCart?name=Chamber&quantity=4')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.get(inventory_url+'/inventory/checkAvailibility?name=Chamber')
+      d = res.json()
+      available_C = d['quantity']
+
+      res = requests.get(inventory_url+'/inventory/checkAvailibility?name=Aska')
+      d = res.json()
+      available_A = d['quantity']
+
+      res = requests.put(app_url+'/app/undoCart')
+      d = res.json()
+      self.assertEqual(d['status'],"success")
+
+      res = requests.get(inventory_url+'/inventory/checkAvailibility?name=Chamber')
+      d = res.json()
+      self.assertEqual(d['quantity'],available_C+4)
+
+      res = requests.get(inventory_url+'/inventory/checkAvailibility?name=Aska')
+      d = res.json()
+      self.assertEqual(d['quantity'],available_A+3)
+
+      res = requests.get(cart_url+'/cart/getCartItems')
+      d = res.json()
+      self.assertEqual(len(d),0)      
+      
+
 if __name__ == '__main__':
     unittest.main()      

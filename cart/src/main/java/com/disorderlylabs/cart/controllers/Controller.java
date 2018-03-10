@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpEntity;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -34,12 +36,14 @@ public class Controller {
 
 
   @Autowired
+  @Lazy
   RestTemplate restTemplate;
 
   @Autowired
   JdbcTemplate jdbcTemplate;
   private static final String pg_URL = System.getenv("pg_ip");
   private static final String invoice_URL = System.getenv("invoice_ip");
+  private static final String inventory_URL = System.getenv("inventory_ip");
 
   @RequestMapping("/cart")
   public String index() {
@@ -103,7 +107,41 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/cart/placeOrder", method = RequestMethod.GET)
+  @RequestMapping(value = "/cart/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String undoCart()
+  {
+    try
+    {
+      ArrayList<Cart> cartItems = getCartItems();
+
+      if (cartItems.size() == 0)
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+
+      for (Cart cart: cartItems)
+      {  
+        int quantity = cart.getQuantity();
+        int ItemID = cart.getItemID();
+
+        String url = "http://" + inventory_URL + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
+        HttpEntity<String> request = new HttpEntity<>("");
+        String res = restTemplate.postForObject(url, request, String.class);
+
+        JsonParser parser = new JsonParser();
+        JsonObject o = parser.parse(res).getAsJsonObject();
+        if((o.get("status").toString()).contains("failure"))
+          return res;                
+      }
+
+      String res2 = emptyCart();
+      return res2;      
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure\"}";
+    }
+  }  
+
+  @RequestMapping(value = "/cart/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder()
   {
     try
@@ -112,7 +150,8 @@ public class Controller {
       double final_price = 0;
 
       if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";        
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";  
+              
       for (Cart cart: cartItems)
         final_price = final_price + cart.getTotalPrice();
 

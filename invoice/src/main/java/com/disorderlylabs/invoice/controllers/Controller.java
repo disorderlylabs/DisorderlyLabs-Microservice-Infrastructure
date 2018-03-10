@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.context.annotation.Lazy;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -32,6 +33,7 @@ private static final String inventory_URL = System.getenv("inventory_ip");
 private static String invoice_data = "";
 
   @Autowired
+  @Lazy
   RestTemplate restTemplate;
 
   @RequestMapping("/invoice")

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.context.annotation.Lazy;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ public class Controller {
   private static final String invoice_URL = System.getenv("invoice_ip");
 
   @Autowired
+  @Lazy
   RestTemplate restTemplate;
 
   @RequestMapping("/app")
@@ -83,7 +85,7 @@ public class Controller {
   }
 
   //******--------For this particular request 'App' is acting like a forwarding node to 'Inventory'--------******.
-  @RequestMapping(value = "/app/takeFromInventory", method = RequestMethod.PUT)
+  @RequestMapping(value = "/app/takeFromInventory", method = {RequestMethod.PUT, RequestMethod.POST})
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try
@@ -111,9 +113,9 @@ public class Controller {
 
       HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
 
-      ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
+      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
-      return response.toString();
+      return response.getBody();
     }
     catch(Exception e)
     {
@@ -121,7 +123,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/app/addToCart", method = RequestMethod.PUT)
+  @RequestMapping(value = "/app/addToCart", method = {RequestMethod.PUT, RequestMethod.POST})
   public String addToCart(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try
@@ -146,18 +148,12 @@ public class Controller {
       map.add("quantity", quantity + "");
 
       HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-
-      ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
-
-      System.out.println("[app/addtocart] response: " + response.toString());
-
-
-
+      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
       JsonParser parser = new JsonParser();
-      String res = response.toString();
-      JsonObject o = parser.parse(res).getAsJsonObject();
+      String res = response.getBody();
 
+      JsonObject o = parser.parse(res).getAsJsonObject();
       if(o.get("status").toString().contains("failure"))
         return res;
       int ItemID = Integer.parseInt(o.get("ItemID").toString());
@@ -187,7 +183,7 @@ public class Controller {
       request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
       response = restTemplate.postForEntity( url, request , String.class );
 
-      return response.toString();
+      return response.getBody();
     }
     catch(Exception e)
     {
@@ -195,7 +191,7 @@ public class Controller {
     }    
   }
 
-  @RequestMapping(value = "/app/instantPlaceOrder", method = RequestMethod.PUT)
+  @RequestMapping(value = "/app/instantPlaceOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String instantPlaceOrder(@RequestParam(value="name") String name, @RequestParam(value="quantity") int quantity) 
   {
     try
@@ -217,7 +213,7 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/app/placeOrder", method = RequestMethod.PUT)
+  @RequestMapping(value = "/app/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder() 
   {
     try
@@ -228,16 +224,31 @@ public class Controller {
 //      HttpResponse response = client.execute(put);
 
       //[NEW REQUEST CODE]
-      String response = restTemplate.getForObject(url, String.class);
-
-
-      return response;
+      HttpEntity<String> request = new HttpEntity<>("");
+      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+      return response.getBody();
     }
     catch(Exception e)
     {
       return "{\"status\":\"failure at app: Could not place order because of " + e.toString() + "\"}";
     }
   }     
+
+  @RequestMapping(value = "/app/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String undoCart() 
+  {
+    try
+    {
+      String url = "http://" + cart_URL + "/cart/undoCart";
+      HttpEntity<String> request = new HttpEntity<>("");
+      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+      return response.getBody();
+    }
+    catch(Exception e)
+    {
+      return "{\"status\":\"failure at app: Could not undo cart because of " + e.toString() + "\"}";
+    }
+  }
 
   @RequestMapping(value = "/app/getInvoice")
   public String getInvoice() 
