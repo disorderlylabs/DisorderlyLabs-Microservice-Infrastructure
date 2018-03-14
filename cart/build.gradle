@@ -39,6 +39,10 @@ repositories {
 	mavenCentral()
 }
 
+// tasks.withType(JavaCompile) {
+//   options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-Werror"
+// }
+
 dependencies {
 	compile('org.springframework.boot:spring-boot-starter')
 	compile("org.springframework.boot:spring-boot-starter-web")
@@ -59,6 +63,7 @@ dependencies {
 	compile("io.zipkin.brave:brave-context-log4j2:4.15.0")
 	compile("org.apache.logging.log4j:log4j-core:2.10.0")
 	compile("org.apache.logging.log4j:log4j-jul:2.10.0")
+	compile("com.netflix.hystrix:hystrix-core:1.5.12")
 	//compile("org.apache.logging.log4j:log4j-to-slf4j:2.10.0")
 	testCompile("junit:junit")
 	testCompile('org.springframework.boot:spring-boot-starter-test')

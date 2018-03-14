@@ -47,7 +47,16 @@ public class Controller {
 
   @RequestMapping("/cart")
   public String index() {
-      return "Greetings from Cart App!";
+    String result = GenericHystrixCommand.execute("mycommandgroup", "mycommand", () -> {
+        // maps to initial run()
+        throw new IllegalArgumentException();
+        // return "This is the GenericHystrixCommand Cart App!";
+    }, (t) -> {
+      // maps to getFallback()
+        return "This is the GenericHystrixCommand fallback (sad)";
+    });
+
+    return result;
   }
 
   @RequestMapping("/cart/test")
