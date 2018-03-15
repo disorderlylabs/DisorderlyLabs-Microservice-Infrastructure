@@ -87,6 +87,7 @@ public class GenericHystrixCommand<T> extends HystrixCommand<T> {
 
     @Override
     protected T getFallback() {
+        System.out.println(getFailedExecutionException().getMessage());
         return (this.fallback != null)
                 ? this.fallback.apply(getExecutionException())
                 : super.getFallback();

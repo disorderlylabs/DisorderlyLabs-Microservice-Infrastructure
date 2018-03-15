@@ -31,6 +31,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+// import com.netflix.hystrix.HystrixCommand;
+// import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.*;
+
+
 @RestController
 public class Controller {
 
@@ -47,13 +52,13 @@ public class Controller {
 
   @RequestMapping("/cart")
   public String index() {
-    String result = GenericHystrixCommand.execute("mycommandgroup", "mycommand", () -> {
-        // maps to initial run()
-        throw new IllegalArgumentException();
-        // return "This is the GenericHystrixCommand Cart App!";
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "IndexCommand", () -> {
+      // maps to initial run()
+      throw new IllegalArgumentException();
+      // return "This is the GenericHystrixCommand Cart App!";
     }, (t) -> {
       // maps to getFallback()
-        return "This is the GenericHystrixCommand fallback (sad)";
+      return "This is the GenericHystrixCommand fallback (sad)";
     });
 
     return result;
@@ -61,66 +66,67 @@ public class Controller {
 
   @RequestMapping("/cart/test")
   public String test() {
-    String response;
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "TestCommand", () -> {
+      String response;
+      String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
 
-    String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
+      response = restTemplate.getForObject(invoice, String.class);
+      System.out.println("Inventory response: " + response);
 
-    response = restTemplate.getForObject(invoice, String.class);
-    System.out.println("Inventory response: " + response);
+      return response;
+    }, (t) -> {
+      return "{\"status\":\"failure\",\"message\":\"/cart/test has failed.\"}";
+    });
 
-    return response;
+    return result;
   }
 
   @RequestMapping(value = "/cart/addToCart", method = RequestMethod.POST)
   public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
-    try
-    {
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "AddToCartCommand", () -> {
       String sql = "insert into cart values ("+ ItemID +", "+ quantity+", "+ total_price+")";
       jdbcTemplate.execute(sql);
-      return "{\"status\":\"success\"}";      
-    }
-    catch (Exception e)
-    {
-      return "{\"status\":\"failure\"}";
-    }
+      return "{\"status\":\"success\"}";
+    }, (t) -> {
+      return "{\"status\":\"failure\",\"message\":\"/cart/addToCart has failed.\"}";
+    });
+
+    return result;
   }  
 
   @RequestMapping(value = "/cart/emptyCart", method = RequestMethod.DELETE)
   public String emptyCart()
   {
-    try
-    {
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "EmptyCartCommand", () -> {
       String sql = "DELETE FROM cart";
       jdbcTemplate.execute(sql);
-      return "{\"status\":\"success\"}";      
-    }
-    catch (Exception e)
-    {
-      return "{\"status\":\"failure "+ e.toString()+" \"}";
-    }
+      return "{\"status\":\"success\"}";
+    }, (t) -> {
+      return "{\"status\":\"failure\",\"message\":\"/cart/emptyCart has failed.\"}";
+    });
+
+    return result;
   }
 
   @RequestMapping(value = "/cart/getCartItems", method = RequestMethod.GET)
   public ArrayList<Cart> getCartItems()
   {
-    try
-    {
+    ArrayList<Cart> result = GenericHystrixCommand.execute("CartCommandGroup", "GetCartItemsCommand", () -> {
       String sql = "select * from cart";
       ArrayList<Cart> cartItems = new ArrayList<Cart>(jdbcTemplate.query(sql, new CartMapper()));
       return cartItems;
-    }
-    catch(Exception e)
-    {
+    }, (t) -> {
       return null;
-    }
+    });
+
+    return result;
   }
 
   @RequestMapping(value = "/cart/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
   public String undoCart()
   {
-    try
-    {
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "UndoCartCommand", () -> {
       ArrayList<Cart> cartItems = getCartItems();
 
       if (cartItems.size() == 0)
@@ -142,56 +148,67 @@ public class Controller {
       }
 
       String res2 = emptyCart();
-      return res2;      
-    }
-    catch (Exception e)
-    {
-      return "{\"status\":\"failure\"}";
-    }
+      return res2;
+    }, (t) -> {
+      return "{\"status\":\"failure\",\"message\":\"/cart/undoCart has failed.\"}";
+    });
+
+    return result;
   }  
 
   @RequestMapping(value = "/cart/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder()
   {
-    try
-    {
+    String result = GenericHystrixCommand.execute("CartCommandGroup", "PlaceOrderCommand", () -> {
+      System.out.println("Started placeOrder command");
       ArrayList<Cart> cartItems = getCartItems();
       double final_price = 0;
 
       if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";  
-              
+        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+      System.out.println("Checked if items are in cart");
+
       for (Cart cart: cartItems)
         final_price = final_price + cart.getTotalPrice();
+      System.out.println("Got total price of items");
 
+      /* OLD HTTP CONNECTION STUFF
+      HttpClient client = new DefaultHttpClient();
+      HttpGet get = new HttpGet(url);
+      HttpResponse response = client.execute(get);
+      String res = convertToString(response);
+      */
       String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
-//      HttpClient client = new DefaultHttpClient();
-//      HttpGet get = new HttpGet(url);
-//      HttpResponse response = client.execute(get);
-//      String res = convertToString(response);
       String response = restTemplate.getForObject(url, String.class);
+      System.out.println("called out to payment gateway");
 
-      
       JsonParser parser = new JsonParser();
       JsonObject o = parser.parse(response).getAsJsonObject();
-      if((o.get("status").toString()).contains("failure"))
+      if(o.get("status").toString().contains("failure"))
         return response;
+      System.out.println("parsed payment gateway response, it checks out");
 
       url = "http://" + invoice_URL + "/invoice/generateInvoice";
       response = restTemplate.getForObject(url, String.class);
+      System.out.println("called out to invoice, response: " + response);
 
       String res2 = emptyCart();
+      System.out.println("emptyed cart, res2: " + res2);
+
       o = parser.parse(res2).getAsJsonObject();
       if(o.get("status").toString().contains("failure"))
         return res2;
-
+      System.out.println("parsed empty cart response, returning last response");
+      
+      System.out.println("first try return: " + response);
       return response;
+    }, (t) -> {
+      System.out.println("inside placeOrder fallback");
+      return "{\"status\":\"failure\",\"message\":\"/cart/placeOrder has failed.\"}";
+    });
 
-    }
-    catch (Exception e)
-    {
-      return "{\"status\":\"Failure: Could not place order at cart because of " + e.toString() + " \"}";
-    }
+    System.out.println("final result return: " + result);
+    return result;
   }
 
   JsonArray convertToJsonArray(HttpResponse response) throws IOException
