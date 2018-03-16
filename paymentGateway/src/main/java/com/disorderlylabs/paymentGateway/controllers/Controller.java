@@ -24,7 +24,8 @@ public class Controller {
       Random ran = new Random();
       int x = ran.nextInt(5);
 
-      Thread.sleep(2000); //Intentional sleep to payment processing
+      // Thread.sleep(2000); //Intentional sleep to payment processing
+      Thread.sleep(100);
 
       // if (x == 0)
       //   return "{\"status\":\"Payment failure\"}";

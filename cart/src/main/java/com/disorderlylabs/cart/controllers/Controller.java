@@ -31,9 +31,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-// import com.netflix.hystrix.HystrixCommand;
-// import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.*;
+import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandGroupKey;
 
 
 @RestController
@@ -67,13 +66,8 @@ public class Controller {
   @RequestMapping("/cart/test")
   public String test() {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "TestCommand", () -> {
-      String response;
       String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
-
-      response = restTemplate.getForObject(invoice, String.class);
-      System.out.println("Inventory response: " + response);
-
-      return response;
+      return restTemplate.getForObject(invoice, String.class);
     }, (t) -> {
       return "{\"status\":\"failure\",\"message\":\"/cart/test has failed.\"}";
     });
@@ -127,88 +121,79 @@ public class Controller {
   public String undoCart()
   {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "UndoCartCommand", () -> {
-      ArrayList<Cart> cartItems = getCartItems();
-
-      if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
-
-      for (Cart cart: cartItems)
-      {  
-        int quantity = cart.getQuantity();
-        int ItemID = cart.getItemID();
-
-        String url = "http://" + inventory_URL + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
-        HttpEntity<String> request = new HttpEntity<>("");
-        String res = restTemplate.postForObject(url, request, String.class);
-
-        JsonParser parser = new JsonParser();
-        JsonObject o = parser.parse(res).getAsJsonObject();
-        if((o.get("status").toString()).contains("failure"))
-          return res;                
-      }
-
-      String res2 = emptyCart();
-      return res2;
+      return undoCartFunc(inventory_URL);
     }, (t) -> {
       return "{\"status\":\"failure\",\"message\":\"/cart/undoCart has failed.\"}";
     });
 
     return result;
-  }  
+  }
+
+  String undoCartFunc(String inventory_ip) {
+    ArrayList<Cart> cartItems = getCartItems();
+
+    if (cartItems.size() == 0)
+      return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+
+    for (Cart cart: cartItems)
+    {  
+      int quantity = cart.getQuantity();
+      int ItemID = cart.getItemID();
+
+      String url = "http://" + inventory_ip + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
+      HttpEntity<String> request = new HttpEntity<>("");
+      String res = restTemplate.postForObject(url, request, String.class);
+
+      JsonParser parser = new JsonParser();
+      JsonObject o = parser.parse(res).getAsJsonObject();
+      if((o.get("status").toString()).contains("failure"))
+        return res;                
+    }
+
+    String res2 = emptyCart();
+    return res2;
+  }
 
   @RequestMapping(value = "/cart/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder()
   {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "PlaceOrderCommand", () -> {
-      System.out.println("Started placeOrder command");
-      ArrayList<Cart> cartItems = getCartItems();
-      double final_price = 0;
-
-      if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
-      System.out.println("Checked if items are in cart");
-
-      for (Cart cart: cartItems)
-        final_price = final_price + cart.getTotalPrice();
-      System.out.println("Got total price of items");
-
-      /* OLD HTTP CONNECTION STUFF
-      HttpClient client = new DefaultHttpClient();
-      HttpGet get = new HttpGet(url);
-      HttpResponse response = client.execute(get);
-      String res = convertToString(response);
-      */
-      String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
-      String response = restTemplate.getForObject(url, String.class);
-      System.out.println("called out to payment gateway");
-
-      JsonParser parser = new JsonParser();
-      JsonObject o = parser.parse(response).getAsJsonObject();
-      if(o.get("status").toString().contains("failure"))
-        return response;
-      System.out.println("parsed payment gateway response, it checks out");
-
-      url = "http://" + invoice_URL + "/invoice/generateInvoice";
-      response = restTemplate.getForObject(url, String.class);
-      System.out.println("called out to invoice, response: " + response);
-
-      String res2 = emptyCart();
-      System.out.println("emptyed cart, res2: " + res2);
-
-      o = parser.parse(res2).getAsJsonObject();
-      if(o.get("status").toString().contains("failure"))
-        return res2;
-      System.out.println("parsed empty cart response, returning last response");
-      
-      System.out.println("first try return: " + response);
-      return response;
+      return placeOrderFunc(pg_URL,invoice_URL);
     }, (t) -> {
-      System.out.println("inside placeOrder fallback");
       return "{\"status\":\"failure\",\"message\":\"/cart/placeOrder has failed.\"}";
     });
 
-    System.out.println("final result return: " + result);
     return result;
+  }
+
+  String placeOrderFunc (String pg_ip, String invoice_ip) {
+    ArrayList<Cart> cartItems = getCartItems();
+    double final_price = 0;
+
+    if (cartItems.size() == 0)
+      return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+
+    for (Cart cart: cartItems)
+      final_price = final_price + cart.getTotalPrice();
+    
+    String url = "http://" + pg_ip + "/pg/makePayment?total_price=" + final_price;
+    String response = restTemplate.getForObject(url, String.class);
+
+    JsonParser parser = new JsonParser();
+    JsonObject o = parser.parse(response).getAsJsonObject();
+    if(o.get("status").toString().contains("failure"))
+      return response;
+
+    url = "http://" + invoice_ip + "/invoice/generateInvoice";
+    response = restTemplate.getForObject(url, String.class);
+
+    String res2 = emptyCart();
+
+    o = parser.parse(res2).getAsJsonObject();
+    if(o.get("status").toString().contains("failure"))
+      return res2;
+
+    return response;
   }
 
   JsonArray convertToJsonArray(HttpResponse response) throws IOException
