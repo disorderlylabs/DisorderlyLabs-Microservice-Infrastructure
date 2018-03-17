@@ -44,9 +44,12 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
-  private static final String inventory_URL = System.getenv("inventory_ip");
-  private static final String cart_URL = System.getenv("cart_ip");
-  private static final String invoice_URL = System.getenv("invoice_ip");
+  private static final String inventory_primary_ip = System.getenv("inventory_ip");
+  private static final String cart_primary_ip = System.getenv("cart_ip");
+  private static final String invoice_primary_ip = System.getenv("invoice_ip");
+  // private static final String inventory_backup_ip = System.getenv("inventory_backup_ip");
+  // private static final String cart_backup_ip = System.getenv("cart_backup_ip");
+  // private static final String invoice_backup_ip = System.getenv("invoice_backup_ip");
 
   @Autowired
   @Lazy
@@ -54,239 +57,213 @@ public class Controller {
 
   @RequestMapping("/app")
   public String index() {
-      return "Greetings from App Microservice!";
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "IndexCommand", () -> {
+      // maps to initial run()
+      throw new IllegalArgumentException();
+      // return "This is the GenericHystrixCommand for App.  Hello!";
+    }, (t) -> {
+      // maps to getFallback()
+      return "This is the GenericHystrixCommand fallback for App.";
+    });
+
+    return result;
   }
 
   @RequestMapping("/app/test")
   public String test() {
-      String response;
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "TestCommand", () -> {
+      return testFunc(inventory_primary_ip, cart_primary_ip);
+    }, (t) -> {
+      // for now, just call test again without the backups
+      return testFunc(inventory_primary_ip, cart_primary_ip);
+    });
 
-      String inventory = "http://" + System.getenv("inventory_ip") + "/inventory";
+    return result;
+  }
 
-      String cart = "http://" + System.getenv("cart_ip") + "/cart/test";
+  private String testFunc(String inventory_ip, String cart_ip) {
+    String response;
+    String inventory_URL = "http://" + inventory_ip + "/inventory";
+    String cart_URL = "http://" + cart_ip + "/cart/test";
 
-      response = restTemplate.getForObject(inventory, String.class);
-      System.out.println("Inventory response: " + response);
+    response = restTemplate.getForObject(inventory_URL, String.class);
+    System.out.println("Inventory response: " + response);
 
-      response = restTemplate.getForObject(cart, String.class);
-      System.out.println("cart response: " + response);
+    response = restTemplate.getForObject(cart_URL, String.class);
+    System.out.println("cart response: " + response);
 
-      return response;
+    return response;
   }
 
   @RequestMapping("/app/checkEnv")
   public String checkEnv() 
   {
-    String ans = "";
-    for (String key : System.getenv().keySet())
-      ans = ans + key + " : " + System.getenv(key) + "\n";
-    return ans;
-    // return System.getenv("inventory_ip") + "";
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "CeckEnvCommand", () -> {
+      String ans = "";
+      for (String key : System.getenv().keySet())
+        ans = ans + key + " : " + System.getenv(key) + "\n";
+      return ans;
+    }, (t) -> {
+      return "{\"status\":\"failure at app/checkEnv: Could return environment status." + "\"}";
+    });
+
+    return result;
   }
 
   //******--------For this particular request 'App' is acting like a forwarding node to 'Inventory'--------******.
   @RequestMapping(value = "/app/takeFromInventory", method = {RequestMethod.PUT, RequestMethod.POST})
   public String takeFromInventory(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
-    try
-    {
-//      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//
-//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("name", name));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      HttpResponse response = client.execute(put);
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "TakeFromInventoryCommand", () -> {
+      return takeFromInventoryFunc(name, quantity, inventory_primary_ip);
+    }, (t) -> {
+      return "{\"status\":\"failure at app/takeFromInventory." + "\"}";
+    });
 
+    return result;
+  }
 
-      //[NEW REQUEST CODE]
-      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+  private String takeFromInventoryFunc(String name, int quantity, String inventory_ip) {
+    String inventory_URL = "http://" + inventory_ip + "/inventory/takeFromInventory";
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-      MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
-      map.add("name", name);
-      map.add("quantity", quantity + "");
+    MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
+    map.add("name", name);
+    map.add("quantity", quantity + "");
 
-      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+    ResponseEntity<String> response = restTemplate.postForEntity(inventory_URL, request, String.class);
 
-      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-
-      return response.getBody();
-    }
-    catch(Exception e)
-    {
-      return e.toString();
-    }
+    return response.getBody();
   }
 
   @RequestMapping(value = "/app/addToCart", method = {RequestMethod.PUT, RequestMethod.POST})
   public String addToCart(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
-    try
-    {
-      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//
-//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("name", name));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      HttpResponse response = client.execute(put);
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "AddToCartCommand", () -> {
+      return addToCartFunc(name, quantity, inventory_primary_ip, cart_primary_ip);
+    }, (t) -> {
+      return "{\"status\":\"failure at app/addToCart." + "\"}";
+    });
 
-      //[NEW REQUEST CODE]
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    return result;
+  }
 
-      MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
-      map.add("name", name);
-      map.add("quantity", quantity + "");
+  private String addToCartFunc(String name, int quantity, String inventory_ip, String cart_ip) {
+    String inventory_URL = "http://" + inventory_ip + "/inventory/takeFromInventory";
 
-      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-      JsonParser parser = new JsonParser();
-      String res = response.getBody();
+    MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
+    map.add("name", name);
+    map.add("quantity", quantity + "");
 
-      JsonObject o = parser.parse(res).getAsJsonObject();
-      if(o.get("status").toString().contains("failure"))
-        return res;
-      int ItemID = Integer.parseInt(o.get("ItemID").toString());
-      double total_price = Double.parseDouble(o.get("total_price").toString());
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+    ResponseEntity<String> response = restTemplate.postForEntity(inventory_URL, request, String.class);
 
-      url = "http://" + cart_URL + "/cart/addToCart";
+    JsonParser parser = new JsonParser();
+    String res = response.getBody();
 
+    JsonObject o = parser.parse(res).getAsJsonObject();
+    if(o.get("status").toString().contains("failure"))
+      return res;
+    int ItemID = Integer.parseInt(o.get("ItemID").toString());
+    double total_price = Double.parseDouble(o.get("total_price").toString());
 
+    String cart_URL = "http://" + cart_ip + "/cart/addToCart";
 
-//      put = new HttpPut(url);
-//      urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("ItemID", ItemID + ""));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//      urlParameters.add(new BasicNameValuePair("total_price", total_price + ""));
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      response = client.execute(put);
-      //[NEW REQUEST CODE]
-      headers.clear(); //clearing the headers
-      map.clear();  //clearing the map for new parameters
+    headers.clear(); //clearing the headers
+    map.clear();  //clearing the map for new parameters
 
-      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-      map.add("ItemID", ItemID + "");
-      map.add("quantity", quantity + "");
-      map.add("total_price", total_price + "");
+    map.add("ItemID", ItemID + "");
+    map.add("quantity", quantity + "");
+    map.add("total_price", total_price + "");
 
-      request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-      response = restTemplate.postForEntity( url, request , String.class );
+    request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
+    response = restTemplate.postForEntity( cart_URL, request , String.class );
 
-      return response.getBody();
-    }
-    catch(Exception e)
-    {
-      return "{\"status\":\"failure at app: Could not add to cart because of " + e.toString() + "\"}";
-    }    
+    return response.getBody();
   }
 
   @RequestMapping(value = "/app/instantPlaceOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String instantPlaceOrder(@RequestParam(value="name") String name, @RequestParam(value="quantity") int quantity) 
   {
-    try
-    {
-      if (name != null)
-      {
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "InstantPlaceOrderCommand", () -> {
+      if (name != null) {
         String res = addToCart(name, quantity);
         JsonParser parser = new JsonParser();
         JsonObject o = parser.parse(res).getAsJsonObject();
         if(o.get("status").toString().contains("failure"))
-        return res;        
+          return res;        
       }  
 
-      return placeOrder();   
-    }
-    catch(Exception e)
-    {
-      return "{\"status\":\"failure at app: Could not place instant order because of " + e.toString() + "\"}";
-    }
+      return placeOrder(); 
+    }, (t) -> {
+      return "{\"status\":\"failure at app/instantPlaceOrder." + "\"}";
+    });
+
+    return result;
   }
 
   @RequestMapping(value = "/app/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
   public String placeOrder() 
   {
-    try
-    {
-      String url = "http://" + cart_URL + "/cart/placeOrder";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//      HttpResponse response = client.execute(put);
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "PlaceOrderCommand", () -> {
+      return placeOrderFunc(cart_primary_ip);
+    }, (t) -> {
+      return "{\"status\":\"failure at app/placeOrder." + "\"}";
+    });
 
-      //[NEW REQUEST CODE]
-      HttpEntity<String> request = new HttpEntity<>("");
-      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-      return response.getBody();
-    }
-    catch(Exception e)
-    {
-      return "{\"status\":\"failure at app: Could not place order because of " + e.toString() + "\"}";
-    }
-  }     
+    return result;
+  }
+
+  private String placeOrderFunc(String cart_ip) {
+    String cart_URL = "http://" + cart_ip + "/cart/placeOrder";
+    HttpEntity<String> request = new HttpEntity<>("");
+    ResponseEntity<String> response = restTemplate.postForEntity(cart_URL, request, String.class);
+    return response.getBody();
+  }
 
   @RequestMapping(value = "/app/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
   public String undoCart() 
   {
-    try
-    {
-      String url = "http://" + cart_URL + "/cart/undoCart";
-      HttpEntity<String> request = new HttpEntity<>("");
-      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-      return response.getBody();
-    }
-    catch(Exception e)
-    {
-      return "{\"status\":\"failure at app: Could not undo cart because of " + e.toString() + "\"}";
-    }
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "UndoCartCommand", () -> {
+      return undoCartFunc(cart_primary_ip);
+    }, (t) -> {
+      return "{\"status\":\"failure at app/undoCart." + "\"}";
+    });
+
+    return result;
+  }
+
+  private String undoCartFunc(String cart_ip) {
+    String cart_URL = "http://" + cart_ip + "/cart/undoCart";
+    HttpEntity<String> request = new HttpEntity<>("");
+    ResponseEntity<String> response = restTemplate.postForEntity(cart_URL, request, String.class);
+    return response.getBody();
   }
 
   @RequestMapping(value = "/app/getInvoice")
   public String getInvoice() 
   {
-    try
-    {
-      String url = "http://" + invoice_URL + "/invoice/getInvoice";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpGet get = new HttpGet(url);
-//      HttpResponse response = client.execute(get);
-//      String res = convertToString(response);
-      //[NEW REQUEST CODE]
-      String response = restTemplate.getForObject(url, String.class);
+    String result = GenericHystrixCommand.execute("AppCommandGroup", "GetInvoiceCommand", () -> {
+      return getInvoiceFunc(invoice_primary_ip);
+    }, (t) -> {
+      return "{\"status\":\"failure at app/getInvoice." + "\"}";
+    });
 
-      if (response.contains("not generated"))
-        return response.replace("\n","");
-      else
-        return response;
-    }
-    catch(Exception e)
-    {
-      return "{\"status\":\"failure at app: Could not invoice because of " + e.toString() + "\"}";
-    }
+    return result;
   }
 
-  String convertToString(HttpResponse response) throws IOException
-  {
-    if(response!=null)
-    {
-      BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-      String line = "";
-      String line2 = "";
-      while ((line = rd.readLine()) != null) 
-      {
-        line2+=line+"\n";
-      }
-      return line2;
-    }
-    return "";
-  }  
-}  
+  private String getInvoiceFunc(String invoice_ip) {
+    String invoice_URL = "http://" + invoice_ip + "/invoice/getInvoice";
+    String response = restTemplate.getForObject(invoice_URL, String.class);
+
+    if (response.contains("not generated")) return response.replace("\n","");
+    else return response;
+  }
+}

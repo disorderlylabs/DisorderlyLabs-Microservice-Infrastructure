@@ -1,4 +1,4 @@
-package com.disorderlylabs.cart.controllers;
+package com.disorderlylabs.app.controllers;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;

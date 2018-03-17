@@ -129,7 +129,7 @@ public class Controller {
     return result;
   }
 
-  String undoCartFunc(String inventory_ip) {
+  private String undoCartFunc(String inventory_ip) {
     ArrayList<Cart> cartItems = getCartItems();
 
     if (cartItems.size() == 0)
@@ -166,7 +166,7 @@ public class Controller {
     return result;
   }
 
-  String placeOrderFunc (String pg_ip, String invoice_ip) {
+  private String placeOrderFunc (String pg_ip, String invoice_ip) {
     ArrayList<Cart> cartItems = getCartItems();
     double final_price = 0;
 
@@ -195,33 +195,4 @@ public class Controller {
 
     return response;
   }
-
-  JsonArray convertToJsonArray(HttpResponse response) throws IOException
-  {
-    if (response!=null)
-    {
-      String json = EntityUtils.toString(response.getEntity(), "UTF-8");
-      Gson gson = new Gson();
-      JsonObject body = gson.fromJson(json, JsonObject.class);
-      JsonArray results = body.get("results").getAsJsonArray();
-      return results;
-    }
-    return null;
-  }
-
-  String convertToString(HttpResponse response) throws IOException
-  {
-    if(response!=null)
-    {
-      BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-      String line = "";
-      String line2 = "";
-      while ((line = rd.readLine()) != null) 
-      {
-        line2+=line+"\n";
-      }
-      return line2;
-    }
-    return "";
-  }        
 }
