@@ -45,9 +45,12 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
-  private static final String pg_URL = System.getenv("pg_ip");
-  private static final String invoice_URL = System.getenv("invoice_ip");
-  private static final String inventory_URL = System.getenv("inventory_ip");
+  private static final String pg_primary_ip = System.getenv("pg_ip");
+  private static final String invoice_primary_ip = System.getenv("invoice_ip");
+  private static final String inventory_primary_ip = System.getenv("inventory_ip");
+  private static final String pg_backup_ip = System.getenv("pg_b_ip");
+  private static final String invoice_backup_ip = System.getenv("invoice_b_ip");
+  private static final String inventory_backup_ip = System.getenv("inventory_b_ip");
 
   @RequestMapping("/cart")
   public String index() {
@@ -66,10 +69,12 @@ public class Controller {
   @RequestMapping("/cart/test")
   public String test() {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "TestCommand", () -> {
-      String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
+      String invoice = "http://" + invoice_primary_ip + "/invoice/test";
       return restTemplate.getForObject(invoice, String.class);
     }, (t) -> {
-      return "{\"status\":\"failure\",\"message\":\"/cart/test has failed.\"}";
+      String invoice = "http://" + invoice_backup_ip + "/invoice/test";
+      return restTemplate.getForObject(invoice, String.class);
+      // return "{\"status\":\"failure\",\"message\":\"/cart/test has failed.\"}";
     });
 
     return result;
@@ -121,9 +126,10 @@ public class Controller {
   public String undoCart()
   {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "UndoCartCommand", () -> {
-      return undoCartFunc(inventory_URL);
+      return undoCartFunc(inventory_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure\",\"message\":\"/cart/undoCart has failed.\"}";
+      return undoCartFunc(inventory_backup_ip);
+      // return "{\"status\":\"failure\",\"message\":\"/cart/undoCart has failed.\"}";
     });
 
     return result;
@@ -158,9 +164,10 @@ public class Controller {
   public String placeOrder()
   {
     String result = GenericHystrixCommand.execute("CartCommandGroup", "PlaceOrderCommand", () -> {
-      return placeOrderFunc(pg_URL,invoice_URL);
+      return placeOrderFunc(pg_primary_ip, invoice_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure\",\"message\":\"/cart/placeOrder has failed.\"}";
+      return placeOrderFunc(pg_backup_ip, invoice_backup_ip);
+      // return "{\"status\":\"failure\",\"message\":\"/cart/placeOrder has failed.\"}";
     });
 
     return result;

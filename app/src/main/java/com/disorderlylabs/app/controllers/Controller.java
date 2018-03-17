@@ -47,9 +47,9 @@ public class Controller {
   private static final String inventory_primary_ip = System.getenv("inventory_ip");
   private static final String cart_primary_ip = System.getenv("cart_ip");
   private static final String invoice_primary_ip = System.getenv("invoice_ip");
-  // private static final String inventory_backup_ip = System.getenv("inventory_backup_ip");
-  // private static final String cart_backup_ip = System.getenv("cart_backup_ip");
-  // private static final String invoice_backup_ip = System.getenv("invoice_backup_ip");
+  private static final String inventory_backup_ip = System.getenv("inventory_b_ip");
+  private static final String cart_backup_ip = System.getenv("cart_b_ip");
+  private static final String invoice_backup_ip = System.getenv("invoice_b_ip");
 
   @Autowired
   @Lazy
@@ -75,7 +75,7 @@ public class Controller {
       return testFunc(inventory_primary_ip, cart_primary_ip);
     }, (t) -> {
       // for now, just call test again without the backups
-      return testFunc(inventory_primary_ip, cart_primary_ip);
+      return testFunc(inventory_backup_ip, cart_backup_ip);
     });
 
     return result;
@@ -117,7 +117,8 @@ public class Controller {
     String result = GenericHystrixCommand.execute("AppCommandGroup", "TakeFromInventoryCommand", () -> {
       return takeFromInventoryFunc(name, quantity, inventory_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure at app/takeFromInventory." + "\"}";
+      return takeFromInventoryFunc(name, quantity, inventory_backup_ip);
+      // return "{\"status\":\"failure at app/takeFromInventory." + "\"}";
     });
 
     return result;
@@ -144,7 +145,8 @@ public class Controller {
     String result = GenericHystrixCommand.execute("AppCommandGroup", "AddToCartCommand", () -> {
       return addToCartFunc(name, quantity, inventory_primary_ip, cart_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure at app/addToCart." + "\"}";
+      return addToCartFunc(name, quantity, inventory_backup_ip, cart_backup_ip);
+      // return "{\"status\":\"failure at app/addToCart." + "\"}";
     });
 
     return result;
@@ -215,7 +217,8 @@ public class Controller {
     String result = GenericHystrixCommand.execute("AppCommandGroup", "PlaceOrderCommand", () -> {
       return placeOrderFunc(cart_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure at app/placeOrder." + "\"}";
+      return placeOrderFunc(cart_backup_ip);
+      // return "{\"status\":\"failure at app/placeOrder." + "\"}";
     });
 
     return result;
@@ -234,7 +237,8 @@ public class Controller {
     String result = GenericHystrixCommand.execute("AppCommandGroup", "UndoCartCommand", () -> {
       return undoCartFunc(cart_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure at app/undoCart." + "\"}";
+      return undoCartFunc(cart_backup_ip);
+      // return "{\"status\":\"failure at app/undoCart." + "\"}";
     });
 
     return result;
@@ -253,7 +257,8 @@ public class Controller {
     String result = GenericHystrixCommand.execute("AppCommandGroup", "GetInvoiceCommand", () -> {
       return getInvoiceFunc(invoice_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure at app/getInvoice." + "\"}";
+      return getInvoiceFunc(invoice_backup_ip);
+      // return "{\"status\":\"failure at app/getInvoice." + "\"}";
     });
 
     return result;

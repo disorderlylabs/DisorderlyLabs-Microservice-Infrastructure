@@ -34,9 +34,9 @@ public class Controller {
 private static final String cart_primary_ip = System.getenv("cart_ip");
 private static final String inventory_primary_ip = System.getenv("inventory_ip");
 private static final String pg_primary_ip = System.getenv("pg_ip");
-// private static final String cart_backup_ip = System.getenv("cart_ip");
-// private static final String inventory_backup_ip = System.getenv("inventory_ip");
-// private static final String pg_backup_ip = System.getenv("pg_ip");
+private static final String cart_backup_ip = System.getenv("cart_b_ip");
+private static final String inventory_backup_ip = System.getenv("inventory_b_ip");
+private static final String pg_backup_ip = System.getenv("pg_b_ip");
 private static String invoice_data = "";
 
   @Autowired
@@ -62,7 +62,8 @@ private static String invoice_data = "";
     String result = GenericHystrixCommand.execute("InvoiceCommandGroup", "TestCommand", () -> {
       return testFunc(pg_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure\",\"message\":\"/invoice/test has failed.\"}";
+      return testFunc(pg_backup_ip);
+      // return "{\"status\":\"failure\",\"message\":\"/invoice/test has failed.\"}";
     });
 
     return result;
@@ -84,7 +85,8 @@ private static String invoice_data = "";
     String result = GenericHystrixCommand.execute("InvoiceCommandGroup", "GenerateInvoiceCommand", () -> {
       return generateInvoiceFunc(cart_primary_ip, inventory_primary_ip);
     }, (t) -> {
-      return "{\"status\":\"failure\",\"message\":\"/invoice/test has failed.\"}";
+      return generateInvoiceFunc(cart_backup_ip, inventory_backup_ip);
+      // return "{\"status\":\"failure\",\"message\":\"/invoice/test has failed.\"}";
     });
 
     return result;
