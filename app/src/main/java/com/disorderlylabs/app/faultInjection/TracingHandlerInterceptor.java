@@ -45,15 +45,13 @@ public final class TracingHandlerInterceptor implements HandlerInterceptor {
         this.handler = HttpServerHandler.create(httpTracing, new HttpServletAdapter());
         this.extractor = httpTracing.tracing().propagation().extractor(GETTER);
         this.propagation = propagation;
-        //calledServices = propagation.getCalledServices();
         traceMap = propagation.getTraceMap();
     }
 
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) {
         System.out.println("[LOG] ServerInterceptor - Prehandle. URL = " + request.getRequestURI());
-        if (request.getAttribute(SpanInScope.class.getName()) != null) {
-            return true;
-        } else {
+        Propagation.propagationData traceData = new Propagation.propagationData();;
+        if (request.getAttribute(SpanInScope.class.getName()) == null) {
             Span span = this.handler.handleReceive(this.extractor, request);
             System.out.println("[LOG] ServerInterceptor Constructing span. ID: " + span.toString());
             request.setAttribute(SpanInScope.class.getName(), this.tracer.withSpanInScope(span));
@@ -61,13 +59,65 @@ public final class TracingHandlerInterceptor implements HandlerInterceptor {
             String traceid = propagation.extractTraceID(span);
             if(!traceMap.containsKey(traceid)) {
                 System.out.println("[LOG] creating new traceMap entry for traceID: " + traceid);
-                 Propagation.propagationData traceData = new Propagation.propagationData();
+//                 traceData = new Propagation.propagationData();
                  traceMap.put(traceid, traceData);
             }
-
-            return true;
         }
+
+        /*Fault injection flag will be in the form:
+            <string,string> => <InjectFault, serviceName=fault1;fault2;fault3
+
+            where fault is in the form:
+            faulttype:param
+
+
+            Example: <InjectFault, service1=DELAY:1000;DROP_PACKET:service3>
+        */
+        try {
+            //if fault injection is set
+            String faultKey = request.getHeader("InjectFault");
+            System.out.println("[DEBUG] faultkey: " + faultKey);
+            if (faultKey != null) {
+                traceData.setFault(faultKey);
+
+                String target[] = faultKey.split("=");
+
+                //if current service is targeted
+                String currentService = request.getRequestURI();
+                if(target[0].equals(currentService)) {
+                    String faultString = target[1];
+
+                    String faults[] = faultString.split(Propagation.SEQ_DELIM);
+
+                    for (String a : faults) {
+                        String f[] = a.split(Propagation.FIELD_DELIM);
+
+                        Propagation.FAULT_TYPES fVal = Propagation.FAULT_TYPES.valueOf(f[0]);
+                        switch (fVal) {
+                            case DELAY:
+                                try {
+                                    int duration = Integer.parseInt(f[1]);
+                                    Thread.sleep(duration);
+                                } catch (NumberFormatException e) {
+                                    System.out.println("Invalid sleep duration");
+                                }
+                                break;
+                            case DROP_PACKET:
+                                System.out.println("drop packet");
+                                return false;
+                            default:
+                                System.out.println("fault type not supported");
+                        }
+                    }
+                }
+            }
+        } catch (Exception exception) {
+            System.out.println("Exception: " + exception.toString());
+        }
+
+        return true;
     }
+
 
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
     }

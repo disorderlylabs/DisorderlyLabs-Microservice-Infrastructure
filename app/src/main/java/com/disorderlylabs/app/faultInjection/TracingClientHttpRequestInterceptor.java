@@ -83,6 +83,10 @@ public final class TracingClientHttpRequestInterceptor implements ClientHttpRequ
     //inject services into header
     request.getHeaders().add(traceid, services);
 
+    if(traceData.getFault() != null) {
+      request.getHeaders().add("InjectFault", traceData.getFault());
+    }
+
 
     ClientHttpResponse response = null;
     Throwable error = null;
@@ -94,7 +98,6 @@ public final class TracingClientHttpRequestInterceptor implements ClientHttpRequ
       List<String> calledServices = response.getHeaders().get(Propagation.SERVICES);
       if(calledServices != null) {
         System.out.println("[LOG] services list: " + calledServices);
-        //enter in the list of called services
       }
 
 

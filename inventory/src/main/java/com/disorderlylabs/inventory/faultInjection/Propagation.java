@@ -1,4 +1,4 @@
-package com.disorderlylabs.app.faultInjection;
+package com.disorderlylabs.inventory.faultInjection;
 
 
 import brave.Span;
@@ -33,33 +33,23 @@ public class Propagation {
         //global timestamp for the trace
         int timestamp;
 
-        //for simulating fault injection
-        String fault;
-
         public propagationData() {
             calledServices = new HashSet<>();
             timestamp = 1;
-            fault = null;
         }
 
         public HashSet<String> getCalledServices() {
             return calledServices;
         }
 
-        public void setFault(String f) { fault = f; }
-
         public int getTimestamp() {
             return timestamp;
-        }
-
-        public String getFault() {
-            return fault;
         }
     }
 
 
     //map of <traceID, set<services urls>> to keep track of the services that have been called
-//    private ConcurrentHashMap<String, HashSet<String>> calledServices;
+    private ConcurrentHashMap<String, HashSet<String>> calledServices;
 
     //map of <traceID, traceData>
     private ConcurrentHashMap<String, propagationData> traceMap;
@@ -81,9 +71,9 @@ public class Propagation {
 
 
 
-//    public ConcurrentHashMap<String, HashSet<String>> getCalledServices() {
-//        return calledServices;
-//    }
+    public ConcurrentHashMap<String, HashSet<String>> getCalledServices() {
+        return calledServices;
+    }
 
     public ConcurrentHashMap<String, propagationData> getTraceMap() {
         return traceMap;
