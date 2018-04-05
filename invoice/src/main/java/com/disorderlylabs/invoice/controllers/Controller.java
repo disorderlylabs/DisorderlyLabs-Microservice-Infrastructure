@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.context.annotation.Lazy;
 
 import com.google.gson.Gson;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 
 
 @RestController
@@ -30,7 +32,7 @@ public class Controller {
 
 private static final String cart_URL = System.getenv("cart_ip");
 private static final String inventory_URL = System.getenv("inventory_ip");
-private static String invoice_data = "";
+private static HashMap<String, String> invoices = new HashMap<String, String>();
 
   @Autowired
   @Lazy
@@ -53,17 +55,18 @@ private static String invoice_data = "";
     return response;
   }
 
-  @RequestMapping("/invoice/generateInvoice")
-  public String generateInvoice() 
+  @RequestMapping("/invoice/{userID}/generateInvoice")
+  public String generateInvoice(@PathVariable String userID) 
   {
     try
     {
-      String url = "http://" + cart_URL + "/cart/getCartItems";
+      String url = "http://" + cart_URL + "/cart/" + userID + "/getCartItems";
       String response = restTemplate.getForObject(url, String.class);
 
       JsonParser parser = new JsonParser();
       JsonElement e = parser.parse(response);
       double final_price = 0;
+      String invoice_data = "";
       invoice_data = "Name\t|\tQuantity\t|\tPrice\n";
       invoice_data = invoice_data + "--------------------------------------------\n";
       if (e.isJsonArray())
@@ -84,6 +87,7 @@ private static String invoice_data = "";
         }
         invoice_data = invoice_data + "--------------------------------------------\n";
         invoice_data = invoice_data + "Total Price  =  "+ final_price + "\n";
+        invoices.put(userID + "", invoice_data);
         return "{\"status\":\"success\"}";
       }
       else
@@ -97,19 +101,20 @@ private static String invoice_data = "";
     } 
   }
 
-  @RequestMapping("/invoice/getInvoice")
-  public String getInvoice() 
+  @RequestMapping("/invoice/{userID}/getInvoice")
+  public String getInvoice(@PathVariable String userID) 
   {
-    if (invoice_data.length() == 0)
-      return "Invoice not generated yet";
-    else
-      return invoice_data;
+    if (invoices.containsKey(userID + ""))
+      return invoices.get(userID + "");
+    return "Invoice not generated yet";
+      
   }
 
-  @RequestMapping("/invoice/clearInvoice")
-  public void clearInvoice() 
+  @RequestMapping("/invoice/{userID}/clearInvoice")
+  public void clearInvoice(@PathVariable String userID) 
   {
-    invoice_data = "";
+    if (invoices.containsKey(userID + ""))
+      invoices.remove(userID + "");
   }  
 
   String convertToString(HttpResponse response) throws IOException

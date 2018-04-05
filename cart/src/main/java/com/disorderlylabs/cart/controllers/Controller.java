@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpEntity;
 
@@ -62,20 +63,20 @@ public class Controller {
     return response;
   }
 
-  @RequestMapping(value = "/cart/addToCart", method = RequestMethod.POST)
-  public String addToCart(@RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
+  @RequestMapping(value = "/cart/{userID}/addToCart", method = RequestMethod.POST)
+  public String addToCart(@PathVariable String userID, @RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
     try
     {
-      String sql = "insert into cart values ("+ ItemID +", "+ quantity+", "+ total_price+")";
+      String sql = "insert into cart(ItemID, quantity, total_price, userID) values ("+ ItemID +", "+ quantity+", "+ total_price+", \'"+ userID+"\')";
       jdbcTemplate.execute(sql);
       return "{\"status\":\"success\"}";      
     }
     catch (Exception e)
     {
-      return "{\"status\":\"failure\"}";
+      return "{\"status\":\"failure "+ e.toString()+" \"}";
     }
-  }  
+  } 
 
   @RequestMapping(value = "/cart/emptyCart", method = RequestMethod.DELETE)
   public String emptyCart()
@@ -83,6 +84,21 @@ public class Controller {
     try
     {
       String sql = "DELETE FROM cart";
+      jdbcTemplate.execute(sql);
+      return "{\"status\":\"success\"}";      
+    }
+    catch (Exception e)
+    {
+      return "{\"status\":\"failure "+ e.toString()+" \"}";
+    }
+  }
+
+  @RequestMapping(value = "/cart/{userID}/emptyCart", method = RequestMethod.DELETE)
+  public String emptyCart(@PathVariable String userID)
+  {
+    try
+    {
+      String sql = "DELETE FROM cart where userID=\'"+ userID +"\'";
       jdbcTemplate.execute(sql);
       return "{\"status\":\"success\"}";      
     }
@@ -107,12 +123,27 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/cart/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String undoCart()
+  @RequestMapping(value = "/cart/{userID}/getCartItems", method = RequestMethod.GET)
+  public ArrayList<Cart> getCartItems(@PathVariable String userID)
   {
     try
     {
-      ArrayList<Cart> cartItems = getCartItems();
+      String sql = "select * from cart where userID=\'"+ userID +"\'";
+      ArrayList<Cart> cartItems = new ArrayList<Cart>(jdbcTemplate.query(sql, new CartMapper()));
+      return cartItems;
+    }
+    catch(Exception e)
+    {
+      return null;
+    }
+  }
+
+  @RequestMapping(value = "/cart/{userID}/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String undoCart(@PathVariable String userID)
+  {
+    try
+    {
+      ArrayList<Cart> cartItems = getCartItems(userID);
 
       if (cartItems.size() == 0)
         return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
@@ -132,7 +163,7 @@ public class Controller {
           return res;                
       }
 
-      String res2 = emptyCart();
+      String res2 = emptyCart(userID);
       return res2;      
     }
     catch (Exception e)
@@ -141,8 +172,8 @@ public class Controller {
     }
   }  
 
-  @RequestMapping(value = "/cart/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String placeOrder()
+  @RequestMapping(value = "/cart/{userID}/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String placeOrder(@PathVariable String userID)
   {
     try
     {
@@ -155,11 +186,7 @@ public class Controller {
       for (Cart cart: cartItems)
         final_price = final_price + cart.getTotalPrice();
 
-      String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price;
-//      HttpClient client = new DefaultHttpClient();
-//      HttpGet get = new HttpGet(url);
-//      HttpResponse response = client.execute(get);
-//      String res = convertToString(response);
+      String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price; 
       String response = restTemplate.getForObject(url, String.class);
 
       
@@ -168,10 +195,10 @@ public class Controller {
       if((o.get("status").toString()).contains("failure"))
         return response;
 
-      url = "http://" + invoice_URL + "/invoice/generateInvoice";
+      url = "http://" + invoice_URL + "/invoice/" + userID + "/generateInvoice";
       response = restTemplate.getForObject(url, String.class);
 
-      String res2 = emptyCart();
+      String res2 = emptyCart(userID);
       o = parser.parse(res2).getAsJsonObject();
       if(o.get("status").toString().contains("failure"))
         return res2;
