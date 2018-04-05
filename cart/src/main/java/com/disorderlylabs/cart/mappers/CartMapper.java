@@ -12,7 +12,8 @@ public Cart mapRow(ResultSet rs, int rowNum) throws SQLException {
   Cart u = new Cart();  
   u.setItemID(rs.getInt("itemID"));
   u.setQuantity(rs.getInt("quantity"));
-  u.setTotalPrice(rs.getDouble("total_price")); 
+  u.setTotalPrice(rs.getDouble("total_price"));
+  u.setUserID(rs.getString("userID")); 
   return u;  
  }  
 }

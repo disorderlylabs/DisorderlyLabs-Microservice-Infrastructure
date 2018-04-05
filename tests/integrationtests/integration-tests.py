@@ -57,7 +57,7 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       available = d['quantity']
 
-      res = requests.put(app_url+'/app/addToCart?name=Chamber&quantity='+ str(available+1))
+      res = requests.put(app_url+'/app/umang/addToCart?name=Chamber&quantity='+ str(available+1))
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"Not enough in inventory")  
@@ -71,15 +71,19 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Philo&quantity=3')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Philo&quantity=3')
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Goblet&quantity=4')
+      res = requests.put(app_url+'/app/tuan/addToCart?name=Order&quantity=2')
+      d = res.json()
+      self.assertEqual(d['status'],"success")      
+
+      res = requests.put(app_url+'/app/umang/addToCart?name=Goblet&quantity=4')
       d = res.json()
       self.assertEqual(d['status'],"success")        
 
-      res = requests.get(cart_url+'/cart/getCartItems')
+      res = requests.get(cart_url+'/cart/umang/getCartItems')
       d = res.json()
       self.assertEqual(d[0]['itemID'],1)
       self.assertEqual(d[0]['quantity'],3)
@@ -97,7 +101,7 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       available = d['quantity']
 
-      res = requests.put(app_url+'/app/instantPlaceOrder?name=Chamber&quantity='+ str(available+1))
+      res = requests.put(app_url+'/app/umang/instantPlaceOrder?name=Chamber&quantity='+ str(available+1))
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"Not enough in inventory")  
@@ -111,23 +115,23 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Half&quantity=2')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Half&quantity=2')
       d = res.json()
       self.assertEqual(d['status'],"success")      
 
-      res = requests.put(app_url+'/app/addToCart?name=Deathly&quantity=2')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Deathly&quantity=2')
       d = res.json()
       self.assertEqual(d['status'],"success") 
 
-      res = requests.put(app_url+'/app/placeOrder')
+      res = requests.put(app_url+'/app/umang/placeOrder')
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.get(cart_url+'/cart/getCartItems')
+      res = requests.get(cart_url+'/cart/umang/getCartItems')
       d = res.json()
       self.assertEqual(len(d),0)
 
-      res = requests.get(app_url+'/app/getInvoice')
+      res = requests.get(app_url+'/app/umang/getInvoice')
       self.assertEqual(res.text.split("\n")[5], "Total Price  =  44.0")
 
   def test_instantPlaceOrder(self):
@@ -139,15 +143,15 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/instantPlaceOrder?name=Order&quantity=3')
+      res = requests.put(app_url+'/app/umang/instantPlaceOrder?name=Order&quantity=3')
       d = res.json()
       self.assertEqual(d['status'],"success")      
 
-      res = requests.get(cart_url+'/cart/getCartItems')
+      res = requests.get(cart_url+'/cart/umang/getCartItems')
       d = res.json()
       self.assertEqual(len(d),0)
 
-      res = requests.get(app_url+'/app/getInvoice')
+      res = requests.get(app_url+'/app/umang/getInvoice')
       self.assertEqual(res.text.split("\n")[4], "Total Price  =  28.5")
 
   def test_instantPlaceOrder_withIteminCart(self):
@@ -159,35 +163,39 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Half&quantity=2')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Half&quantity=2')
       d = res.json()
-      self.assertEqual(d['status'],"success")       
+      self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/instantPlaceOrder?name=Order&quantity=3')
+      res = requests.put(app_url+'/app/tuan/addToCart?name=Order&quantity=4')
+      d = res.json()
+      self.assertEqual(d['status'],"success")              
+
+      res = requests.put(app_url+'/app/umang/instantPlaceOrder?name=Order&quantity=3')
       d = res.json()
       self.assertEqual(d['status'],"success")      
 
-      res = requests.get(cart_url+'/cart/getCartItems')
+      res = requests.get(cart_url+'/cart/umang/getCartItems')
       d = res.json()
       self.assertEqual(len(d),0)
 
-      res = requests.get(app_url+'/app/getInvoice')
-      self.assertEqual(res.text.split("\n")[5], "Total Price  =  49.5")
+      res = requests.get(app_url+'/app/umang/getInvoice')
+      self.assertEqual(res.text.split("\n")[5], "Total Price  =  49.5")      
 
   def test_placeOrder_nothinginCart_viaApp(self):
       res = requests.delete(cart_url+'/cart/emptyCart')
       d = res.json()
       self.assertEqual(d['status'],"success")      
 
-      res = requests.put(app_url+'/app/placeOrder')
+      res = requests.put(app_url+'/app/umang/placeOrder')
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"No items in cart")      
 
-  def test_test_noInvoiceGenerated_viaApp(self):
-      requests.put(invoice_url+'/invoice/clearInvoice')
+  def test_noInvoiceGenerated_viaApp(self):
+      requests.put(invoice_url+'/invoice/umang/clearInvoice')
 
-      res = requests.get(app_url+'/app/getInvoice')
+      res = requests.get(app_url+'/app/umang/getInvoice')
       self.assertEqual(res.text, 'Invoice not generated yet')
 
   def test_undoCart_nothingCart(self):
@@ -199,7 +207,7 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/undoCart')
+      res = requests.put(app_url+'/app/umang/undoCart')
       d = res.json()
       self.assertEqual(d['status'],"failure")
       self.assertEqual(d['message'],"No items in cart")
@@ -214,11 +222,11 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Aska&quantity=3')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Aska&quantity=3')
       d = res.json()
       self.assertEqual(d['status'],"success")
 
-      res = requests.put(app_url+'/app/addToCart?name=Chamber&quantity=4')
+      res = requests.put(app_url+'/app/umang/addToCart?name=Chamber&quantity=4')
       d = res.json()
       self.assertEqual(d['status'],"success")
 
@@ -230,7 +238,7 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       available_A = d['quantity']
 
-      res = requests.put(app_url+'/app/undoCart')
+      res = requests.put(app_url+'/app/umang/undoCart')
       d = res.json()
       self.assertEqual(d['status'],"success")
 
@@ -242,7 +250,7 @@ class integrationtests(unittest.TestCase):
       d = res.json()
       self.assertEqual(d['quantity'],available_A+3)
 
-      res = requests.get(cart_url+'/cart/getCartItems')
+      res = requests.get(cart_url+'/cart/umang/getCartItems')
       d = res.json()
       self.assertEqual(len(d),0)      
       
