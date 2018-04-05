@@ -6,17 +6,19 @@ public class Cart
   private int itemID;
   private int quantity;
   private double total_price;
+  private String userID;
 
   public Cart()
   {
 
   }
   
-  public Cart(int itemID, int quantity, double total_price)
+  public Cart(int itemID, int quantity, double total_price, String userID)
   {
     this.itemID = itemID;
     this.quantity = quantity;
     this.total_price = total_price;
+    this.userID = userID;
   }
 
   public void setItemID(int itemID)
@@ -34,6 +36,11 @@ public class Cart
     this.total_price = total_price;
   }
 
+  public void setUserID(String userID)
+  {
+    this.userID = userID;
+  }
+
   public int getItemID()
   {
      return this.itemID;
@@ -49,8 +56,13 @@ public class Cart
     return this.total_price;
   }
 
+  public String getUserID()
+  {
+    return this.userID;
+  }  
+
   public String toString()
   {
-    return "ItemID: "+ itemID + "\nQuantity: " + quantity + "\nTotal Price: " + total_price + "\n"; 
+    return "ItemID: "+ itemID + "\nQuantity: " + quantity + "\nTotal Price: " + total_price + "\nUser ID: " + userID + "\n"; 
   }         
 }

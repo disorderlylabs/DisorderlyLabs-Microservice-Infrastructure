@@ -18,9 +18,17 @@ class unittest_invoice(unittest.TestCase):
       self.assertEqual(res.text, 'Greetings from Invoice Microservice!')      
 
   def test_noInvoiceGenerated(self):
-      requests.put(url+'/invoice/clearInvoice')
-      res = requests.get(url+'/invoice/getInvoice')
+      requests.put(url+'/invoice/umang/clearInvoice')
+      res = requests.get(url+'/invoice/umang/getInvoice')
       self.assertEqual(res.text, 'Invoice not generated yet')
+
+  def test_randomGetInvoice(self):
+      res = requests.get(url+'/invoice/qwerty/getInvoice')
+      self.assertEqual(res.text, 'Invoice not generated yet')
+
+  def test_randomClearInvoice(self):
+      res = requests.get(url+'/invoice/asdf/clearInvoice')
+      self.assertEqual(res.status_code,200)            
 
 if __name__ == '__main__':
     unittest.main()

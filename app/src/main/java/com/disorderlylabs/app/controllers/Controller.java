@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.context.annotation.Lazy;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -90,17 +91,6 @@ public class Controller {
   {
     try
     {
-//      String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//
-//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("name", name));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      HttpResponse response = client.execute(put);
-
 
       //[NEW REQUEST CODE]
       String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
@@ -123,21 +113,12 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/app/addToCart", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String addToCart(@RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
+  @RequestMapping(value = "/app/{userID}/addToCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String addToCart(@PathVariable String userID, @RequestParam(value="name", required=true) String name, @RequestParam(value="quantity", required=true) int quantity) 
   {
     try
     {
       String url = "http://" + inventory_URL + "/inventory/takeFromInventory";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//
-//      List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("name", name));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      HttpResponse response = client.execute(put);
 
       //[NEW REQUEST CODE]
       HttpHeaders headers = new HttpHeaders();
@@ -159,17 +140,8 @@ public class Controller {
       int ItemID = Integer.parseInt(o.get("ItemID").toString());
       double total_price = Double.parseDouble(o.get("total_price").toString());
 
-      url = "http://" + cart_URL + "/cart/addToCart";
+      url = "http://" + cart_URL + "/cart/"+ userID +"/addToCart";
 
-
-
-//      put = new HttpPut(url);
-//      urlParameters = new ArrayList<NameValuePair>();
-//      urlParameters.add(new BasicNameValuePair("ItemID", ItemID + ""));
-//      urlParameters.add(new BasicNameValuePair("quantity", quantity+""));
-//      urlParameters.add(new BasicNameValuePair("total_price", total_price + ""));
-//      put.setEntity(new UrlEncodedFormEntity(urlParameters));
-//      response = client.execute(put);
       //[NEW REQUEST CODE]
       headers.clear(); //clearing the headers
       map.clear();  //clearing the map for new parameters
@@ -191,21 +163,21 @@ public class Controller {
     }    
   }
 
-  @RequestMapping(value = "/app/instantPlaceOrder", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String instantPlaceOrder(@RequestParam(value="name") String name, @RequestParam(value="quantity") int quantity) 
+  @RequestMapping(value = "/app/{userID}/instantPlaceOrder", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String instantPlaceOrder(@PathVariable String userID, @RequestParam(value="name") String name, @RequestParam(value="quantity") int quantity) 
   {
     try
     {
       if (name != null)
       {
-        String res = addToCart(name, quantity);
+        String res = addToCart(userID+"", name, quantity);
         JsonParser parser = new JsonParser();
         JsonObject o = parser.parse(res).getAsJsonObject();
         if(o.get("status").toString().contains("failure"))
         return res;        
       }  
 
-      return placeOrder();   
+      return placeOrder(userID+"");   
     }
     catch(Exception e)
     {
@@ -213,15 +185,12 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/app/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String placeOrder() 
+  @RequestMapping(value = "/app/{userID}/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String placeOrder(@PathVariable String userID) 
   {
     try
     {
-      String url = "http://" + cart_URL + "/cart/placeOrder";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpPut put = new HttpPut(url);
-//      HttpResponse response = client.execute(put);
+      String url = "http://" + cart_URL + "/cart/" + userID + "/placeOrder";
 
       //[NEW REQUEST CODE]
       HttpEntity<String> request = new HttpEntity<>("");
@@ -234,12 +203,12 @@ public class Controller {
     }
   }     
 
-  @RequestMapping(value = "/app/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
-  public String undoCart() 
+  @RequestMapping(value = "/app/{userID}/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  public String undoCart(@PathVariable String userID) 
   {
     try
     {
-      String url = "http://" + cart_URL + "/cart/undoCart";
+      String url = "http://" + cart_URL + "/cart/" + userID + "/undoCart";
       HttpEntity<String> request = new HttpEntity<>("");
       ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
       return response.getBody();
@@ -250,16 +219,12 @@ public class Controller {
     }
   }
 
-  @RequestMapping(value = "/app/getInvoice")
-  public String getInvoice() 
+  @RequestMapping(value = "/app/{userID}/getInvoice")
+  public String getInvoice(@PathVariable String userID) 
   {
     try
     {
-      String url = "http://" + invoice_URL + "/invoice/getInvoice";
-//      HttpClient client = new DefaultHttpClient();
-//      HttpGet get = new HttpGet(url);
-//      HttpResponse response = client.execute(get);
-//      String res = convertToString(response);
+      String url = "http://" + invoice_URL + "/invoice/" + userID + "/getInvoice";
       //[NEW REQUEST CODE]
       String response = restTemplate.getForObject(url, String.class);
 
