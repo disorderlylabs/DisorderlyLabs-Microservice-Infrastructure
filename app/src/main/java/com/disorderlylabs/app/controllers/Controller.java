@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -45,18 +46,35 @@ public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
-  private static final String inventory_URL = System.getenv("inventory_ip");
-  private static final String cart_URL = System.getenv("cart_ip");
-  private static final String invoice_URL = System.getenv("invoice_ip");
+  // private static final String inventory_URL = System.getenv("inventory_ip");
+  // private static final String cart_URL = System.getenv("cart_ip");
+  // private static final String invoice_URL = System.getenv("invoice_ip");
 
   @Autowired
   @Lazy
   RestTemplate restTemplate;
 
+  @Value("${message:Hello default}")
+    private String message;
+
+  @Value("${cart_ip}")
+    private String cart_URL;
+
+  @Value("${inventory_ip}")
+    private String inventory_URL;
+
+  @Value("${invoice_ip}")
+    private String invoice_URL;    
+
   @RequestMapping("/app")
   public String index() {
       return "Greetings from App Microservice!";
   }
+
+  @RequestMapping("/app/checkConfig")
+  public String checkConfig() {
+      return message;
+  }  
 
   @RequestMapping("/app/test")
   public String test() {

@@ -1,6 +1,6 @@
 buildscript {
 	ext {
-		springBootVersion = '1.5.10.RELEASE'
+		springBootVersion = '2.0.0.RELEASE'
 	}
 	repositories {
     maven {
@@ -13,10 +13,12 @@ buildscript {
     classpath('gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0')    
 	}
 }
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'com.palantir.docker'
+apply plugin: 'io.spring.dependency-management'
 
 group = 'com.disorderlylabs'
 version = '0.0.1-SNAPSHOT'
@@ -26,6 +28,10 @@ targetCompatibility = 1.8
 jar {
     baseName = 'invoice'
     version =  '0.0.1-SNAPSHOT'
+}
+
+task wrapper(type: Wrapper) {
+   gradleVersion = '4.6' //version required
 }
 
 docker {
@@ -42,6 +48,7 @@ dependencies {
 	compile('org.springframework.boot:spring-boot-starter')
 	compile("org.springframework.boot:spring-boot-starter-web")
 	compile("org.springframework:spring-jdbc")
+  compile('org.springframework.cloud:spring-cloud-starter-config')
 	compile("com.h2database:h2")
 	compile("org.apache.httpcomponents:httpclient:4.3.4")
 	compile("com.google.code.gson:gson:2.2+")
@@ -61,4 +68,16 @@ dependencies {
 	//compile("org.apache.logging.log4j:log4j-to-slf4j:2.10.0")
 	testCompile("junit:junit")
 	testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Finchley.M9"
+    }
+}
+
+repositories {
+    maven {
+        url 'https://repo.spring.io/libs-milestone'
+    }
 }
