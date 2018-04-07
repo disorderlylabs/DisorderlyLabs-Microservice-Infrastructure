@@ -1,0 +1,6 @@
+message: "Yo World!"
+inventory_ip: 10.0.0.21:8080
+cart_ip: 10.0.0.22:8080
+invoice_ip: 10.0.0.23:8080 
+pg_ip: 10.0.0.24:8080
+zipkin_ip: 172.17.0.1:9411 

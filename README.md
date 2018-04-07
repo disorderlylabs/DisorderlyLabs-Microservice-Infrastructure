@@ -1,6 +1,9 @@
 # DisorderlyLabs-Microservice-Infrastructure
 In-house MicroService Infrastructure for Disorderly Labs
 
+## Architecture
+![Architecture](files/Infra.png)
+
 ## Prerequisites 
 1. JDK 6+
 2. Gradle
@@ -11,9 +14,16 @@ Go to individual folders and execute `./gradlew build docker`. You can configure
 
 To build all run `sh build.sh`.
 
-
 ## Create Network
 `docker network create --subnet=10.0.0.0/16 mynet`
+
+## Setting up the config server
+The config server picks up all the configurations from a directory. The location of this directory is given under `spring.cloud.config.server.git.uri` in `src/main/resources/application.properties` file. Follow the steps given below for setup:
+
+1. The folder should be a Git-based filesystem repository. For this project the path is set as `/config`. Do note, this path is that within the container.
+2. First create a config folder with path as `${HOME}/config` on your local machine. Make sure you initialize git (`git init`) in that folder
+3. Copy the `application.yml` file present under 'files' from this Github repository into config. Once copied, do a `git commit`.   
+4. While running the config service (as seen in `start.sh`) specify `-v` parameter as follows: `-v ~/config/:/config`. This mounts the folder at `~/config` on your machine to `/config` on the Docker container.   
 
 ## Start the services
 `sh start.sh`
