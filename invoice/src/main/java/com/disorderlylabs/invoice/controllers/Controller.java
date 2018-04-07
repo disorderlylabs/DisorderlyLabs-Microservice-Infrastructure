@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 
 import com.google.gson.Gson;
@@ -30,18 +31,32 @@ import java.util.HashMap;
 @RestController
 public class Controller {
 
-private static final String cart_URL = System.getenv("cart_ip");
-private static final String inventory_URL = System.getenv("inventory_ip");
+// private static final String cart_URL = System.getenv("cart_ip");
+// private static final String inventory_URL = System.getenv("inventory_ip");
 private static HashMap<String, String> invoices = new HashMap<String, String>();
 
   @Autowired
   @Lazy
   RestTemplate restTemplate;
 
+  @Value("${message:Hello default}")
+    private String message;
+
+  @Value("${cart_ip}")
+    private String cart_URL;
+
+  @Value("${inventory_ip}")
+    private String inventory_URL;
+
   @RequestMapping("/invoice")
   public String index() {
       return "Greetings from Invoice Microservice!";
   }
+
+  @RequestMapping("/invoice/checkConfig")
+  public String checkConfig() {
+      return message;
+  }  
 
   @RequestMapping("/invoice/test")
   public String test() {

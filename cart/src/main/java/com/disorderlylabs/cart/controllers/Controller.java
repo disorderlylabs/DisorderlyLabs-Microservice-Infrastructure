@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpEntity;
 
@@ -35,21 +36,37 @@ import java.io.InputStreamReader;
 @RestController
 public class Controller {
 
+  @Autowired
+  JdbcTemplate jdbcTemplate;
+  // private static final String pg_URL = System.getenv("pg_ip");
+  // private static final String invoice_URL = System.getenv("invoice_ip");
+  // private static final String inventory_URL = System.getenv("inventory_ip");
 
   @Autowired
   @Lazy
   RestTemplate restTemplate;
 
-  @Autowired
-  JdbcTemplate jdbcTemplate;
-  private static final String pg_URL = System.getenv("pg_ip");
-  private static final String invoice_URL = System.getenv("invoice_ip");
-  private static final String inventory_URL = System.getenv("inventory_ip");
+  @Value("${message:Hello default}")
+    private String message;
+
+  @Value("${pg_ip}")
+    private String pg_URL;
+
+  @Value("${inventory_ip}")
+    private String inventory_URL;
+
+  @Value("${invoice_ip}")
+    private String invoice_URL;
 
   @RequestMapping("/cart")
   public String index() {
       return "Greetings from Cart App!";
   }
+
+  @RequestMapping("/cart/checkConfig")
+  public String checkConfig() {
+      return message;
+  }  
 
   @RequestMapping("/cart/test")
   public String test() {
