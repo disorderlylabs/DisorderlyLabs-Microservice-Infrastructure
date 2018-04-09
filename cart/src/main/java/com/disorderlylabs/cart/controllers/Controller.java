@@ -72,7 +72,7 @@ public class Controller {
   public String test() {
     String response;
 
-    String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
+    String invoice = "http://" + invoice_URL + "/invoice/test";
 
     response = restTemplate.getForObject(invoice, String.class);
     System.out.println("Inventory response: " + response);

@@ -80,9 +80,9 @@ public class Controller {
   public String test() {
       String response;
 
-      String inventory = "http://" + System.getenv("inventory_ip") + "/inventory";
+      String inventory = "http://" + inventory_URL + "/inventory";
 
-      String cart = "http://" + System.getenv("cart_ip") + "/cart/test";
+      String cart = "http://" + cart_URL + "/cart/test";
 
       response = restTemplate.getForObject(inventory, String.class);
       System.out.println("Inventory response: " + response);
