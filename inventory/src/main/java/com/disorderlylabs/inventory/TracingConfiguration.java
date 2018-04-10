@@ -61,7 +61,7 @@ public class TracingConfiguration extends WebMvcConfigurerAdapter {
   }
 
   /** Controls aspects of tracing such as the name that shows up in the UI */
-  @Bean Tracing tracing(@Value("App") String serviceName) {
+  @Bean Tracing tracing(@Value("Inventory") String serviceName) {
     System.out.println("[LOG]: creating new tracing variable");
     return Tracing.newBuilder()
         .localServiceName(serviceName)
