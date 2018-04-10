@@ -62,10 +62,10 @@ private static HashMap<String, String> invoices = new HashMap<String, String>();
   public String test() {
     String response;
 
-    String pg = "http://" + System.getenv("pg_ip") + "/pg";
+    String pg = "http://" + inventory_URL + "/inventory";
 
     response = restTemplate.getForObject(pg, String.class);
-    System.out.println("pg response: " + response);
+    System.out.println("inventory response: " + response);
 
     return response;
   }
