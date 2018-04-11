@@ -33,14 +33,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
+
 @RestController
 public class Controller {
 
   @Autowired
   JdbcTemplate jdbcTemplate;
-  // private static final String pg_URL = System.getenv("pg_ip");
-  // private static final String invoice_URL = System.getenv("invoice_ip");
-  // private static final String inventory_URL = System.getenv("inventory_ip");
 
   @Autowired
   @Lazy
@@ -49,14 +49,23 @@ public class Controller {
   @Value("${message:Hello default}")
     private String message;
 
-  @Value("${pg_ip}")
-    private String pg_URL;
+  @Value("${pg_p_ip}")
+    private String pg_p_ip;
 
-  @Value("${inventory_ip}")
-    private String inventory_URL;
+  @Value("${pg_b_ip}")
+    private String pg_b_ip;
 
-  @Value("${invoice_ip}")
-    private String invoice_URL;
+  @Value("${inventory_p_ip}")
+    private String inventory_p_ip;
+
+  @Value("${inventory_b_ip}")
+    private String inventory_b_ip;
+
+  @Value("${invoice_p_ip}")
+    private String invoice_p_ip;
+
+  @Value("${invoice_b_ip}")
+    private String invoice_b_ip;
 
   @RequestMapping("/cart")
   public String index() {
@@ -68,11 +77,31 @@ public class Controller {
       return message;
   }  
 
-  @RequestMapping("/cart/test")
-  public String test() {
-    String response;
 
-    String invoice = "http://" + System.getenv("invoice_ip") + "/invoice/test";
+  /*
+    --------------------------------
+    /cart/test
+    This command tests connectivity to both inventory and cart.
+    Inventory and Cart will then execute their own test functions
+    to verify that everything works down the service tree.
+    --------------------------------
+  */
+  @RequestMapping("/cart/test")
+  @HystrixCommand(groupKey="CartServiceGroup", commandKey = "testCommand", fallbackMethod = "testFallback")
+  public String test()
+  {
+    return testFunc(invoice_p_ip);
+  }
+
+  public String testFallback()
+  {
+    return testFunc(invoice_b_ip);
+  }
+
+  private String testFunc(String invoice_ip)
+  {
+    String response;
+    String invoice = "http://" + invoice_ip + "/invoice/test";
 
     response = restTemplate.getForObject(invoice, String.class);
     System.out.println("Inventory response: " + response);
@@ -80,6 +109,14 @@ public class Controller {
     return response;
   }
 
+
+  /*  
+    --------------------------------
+    /cart/addToCart
+    This command takes in an itemID, an integer, and a total price
+    and adds that data to the cart of the specified user.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/{userID}/addToCart", method = RequestMethod.POST)
   public String addToCart(@PathVariable String userID, @RequestParam(value="ItemID", required=true) int ItemID, @RequestParam(value="quantity", required=true) int quantity, @RequestParam(value="total_price", required=true) double total_price)
   {
@@ -95,6 +132,13 @@ public class Controller {
     }
   } 
 
+
+  /*  
+    --------------------------------
+    /cart/emptyCart
+    This command deletes the cart for all users.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/emptyCart", method = RequestMethod.DELETE)
   public String emptyCart()
   {
@@ -110,6 +154,13 @@ public class Controller {
     }
   }
 
+
+  /*  
+    --------------------------------
+    /cart/emptyCart
+    This command deletes the cart for the specified user.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/{userID}/emptyCart", method = RequestMethod.DELETE)
   public String emptyCart(@PathVariable String userID)
   {
@@ -125,6 +176,13 @@ public class Controller {
     }
   }
 
+
+  /*  
+    --------------------------------
+    /cart/getCartItems
+    This command returns all the items in the cart, regardless of user.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/getCartItems", method = RequestMethod.GET)
   public ArrayList<Cart> getCartItems()
   {
@@ -140,6 +198,13 @@ public class Controller {
     }
   }
 
+
+  /*  
+    --------------------------------
+    /cart/getCartItems
+    This command returns the items in the cart for a specified user.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/{userID}/getCartItems", method = RequestMethod.GET)
   public ArrayList<Cart> getCartItems(@PathVariable String userID)
   {
@@ -155,78 +220,101 @@ public class Controller {
     }
   }
 
+
+  /*  
+    --------------------------------
+    /cart/undoCart
+    This command adds returns all the items in a user's cart to the inventory.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/{userID}/undoCart", method = {RequestMethod.PUT, RequestMethod.POST})
+  @HystrixCommand(groupKey="CartServiceGroup", commandKey = "undoCartCommand", fallbackMethod = "undoCartFallback")
   public String undoCart(@PathVariable String userID)
   {
-    try
-    {
-      ArrayList<Cart> cartItems = getCartItems(userID);
+    return undoCartFunc(userID, inventory_p_ip);
+  }
 
-      if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
+  public String undoCartFallback(String userID)
+  {
+    return undoCartFunc(userID, inventory_b_ip);
+  }
 
-      for (Cart cart: cartItems)
-      {  
-        int quantity = cart.getQuantity();
-        int ItemID = cart.getItemID();
+  private String undoCartFunc(String userID, String inventory_ip)
+  {
+    ArrayList<Cart> cartItems = getCartItems(userID);
 
-        String url = "http://" + inventory_URL + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
-        HttpEntity<String> request = new HttpEntity<>("");
-        String res = restTemplate.postForObject(url, request, String.class);
+    if (cartItems.size() == 0)
+      return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";
 
-        JsonParser parser = new JsonParser();
-        JsonObject o = parser.parse(res).getAsJsonObject();
-        if((o.get("status").toString()).contains("failure"))
-          return res;                
-      }
+    for (Cart cart: cartItems)
+    {  
+      int quantity = cart.getQuantity();
+      int ItemID = cart.getItemID();
 
-      String res2 = emptyCart(userID);
-      return res2;      
+      String url = "http://" + inventory_ip + "/inventory/addBackToInventory?ItemID="+ItemID+"&quantity="+quantity;
+      HttpEntity<String> request = new HttpEntity<>("");
+      String res = restTemplate.postForObject(url, request, String.class);
+
+      JsonParser parser = new JsonParser();
+      JsonObject o = parser.parse(res).getAsJsonObject();
+      if((o.get("status").toString()).contains("failure"))
+        return res;                
     }
-    catch (Exception e)
-    {
-      return "{\"status\":\"failure\"}";
-    }
-  }  
 
+    String res2 = emptyCart(userID);
+    return res2;
+  }
+
+
+  /*  
+    --------------------------------
+    /cart/placeOrder
+    This command places an order by retrieving the cart items for a specific
+    user, then making a payment for the total price of the items, then 
+    generating an invoice for the payment.
+    --------------------------------
+  */
   @RequestMapping(value = "/cart/{userID}/placeOrder", method = {RequestMethod.PUT, RequestMethod.POST})
+  @HystrixCommand(groupKey="CartServiceGroup", commandKey = "placeOrderCommand", fallbackMethod = "placeOrderFallback")
   public String placeOrder(@PathVariable String userID)
   {
-    try
-    {
-      ArrayList<Cart> cartItems = getCartItems();
-      double final_price = 0;
+    return placeOrderFunc(userID, pg_p_ip, invoice_p_ip);
+  }
 
-      if (cartItems.size() == 0)
-        return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";  
-              
-      for (Cart cart: cartItems)
-        final_price = final_price + cart.getTotalPrice();
+  public String placeOrderFallback(String userID)
+  {
+    return placeOrderFunc(userID, pg_b_ip, invoice_b_ip);
+  }
 
-      String url = "http://" + pg_URL + "/pg/makePayment?total_price=" + final_price; 
-      String response = restTemplate.getForObject(url, String.class);
+  private String placeOrderFunc(String userID, String pg_ip, String invoice_ip)
+  {
+    ArrayList<Cart> cartItems = getCartItems();
+    double final_price = 0;
 
-      
-      JsonParser parser = new JsonParser();
-      JsonObject o = parser.parse(response).getAsJsonObject();
-      if((o.get("status").toString()).contains("failure"))
-        return response;
+    if (cartItems.size() == 0)
+      return "{\"status\":\"failure\",\"message\":\"No items in cart\"}";  
+            
+    for (Cart cart: cartItems)
+      final_price = final_price + cart.getTotalPrice();
 
-      url = "http://" + invoice_URL + "/invoice/" + userID + "/generateInvoice";
-      response = restTemplate.getForObject(url, String.class);
+    String url = "http://" + pg_ip + "/pg/makePayment?total_price=" + final_price; 
+    String response = restTemplate.getForObject(url, String.class);
 
-      String res2 = emptyCart(userID);
-      o = parser.parse(res2).getAsJsonObject();
-      if(o.get("status").toString().contains("failure"))
-        return res2;
-
+    
+    JsonParser parser = new JsonParser();
+    JsonObject o = parser.parse(response).getAsJsonObject();
+    if((o.get("status").toString()).contains("failure"))
       return response;
 
-    }
-    catch (Exception e)
-    {
-      return "{\"status\":\"Failure: Could not place order at cart because of " + e.toString() + " \"}";
-    }
+    url = "http://" + invoice_ip + "/invoice/" + userID + "/generateInvoice";
+    response = restTemplate.getForObject(url, String.class);
+
+    String res2 = emptyCart(userID);
+    o = parser.parse(res2).getAsJsonObject();
+    if(o.get("status").toString().contains("failure"))
+      return res2;
+
+    return response;
   }
 
   JsonArray convertToJsonArray(HttpResponse response) throws IOException

@@ -9,6 +9,7 @@ build() {
 docker ps | grep -v zipkin | cut -d ' ' -f1 | xargs docker kill
 docker ps -a | awk '{if(NR>1) print}' | grep -v zipkin | awk '{print $1}' | xargs docker rm
 
+build config
 build app
 build inventory
 build cart
