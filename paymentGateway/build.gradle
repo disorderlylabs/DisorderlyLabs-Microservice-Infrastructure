@@ -13,7 +13,6 @@ buildscript {
     classpath('gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0')    
 	}
 }
-
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
@@ -30,14 +29,14 @@ jar {
     version =  '0.0.1-SNAPSHOT'
 }
 
-task wrapper(type: Wrapper) {
-   gradleVersion = '4.6' //version required
-}
-
 docker {
     name "${project.group}/${jar.baseName}"
     files jar.archivePath
     buildArgs(['JAR_FILE': "${jar.archiveName}"])
+}
+
+task wrapper(type: Wrapper) {
+   gradleVersion = '4.6' //version required
 }
 
 repositories {
