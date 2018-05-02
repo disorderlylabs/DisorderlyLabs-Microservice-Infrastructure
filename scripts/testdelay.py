@@ -104,7 +104,7 @@ def delay_powerset(powerset):
                 header_val += "|"
             print header_val  
             headers = {'InjectFault': header_val}
-            res = requests.post(url)
+            res = requests.post(url, headers = headers)
        
 
 
