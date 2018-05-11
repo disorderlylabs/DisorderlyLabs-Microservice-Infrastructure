@@ -36,7 +36,7 @@ for name in service_names:
     services.append(service)
 
 
-def get_running_instances(ec2_resource): 
+def get_running_instances(ec2):
     #filter the running instances
     instances  = ec2.instances.filter(Filters=instance_filters)
 
@@ -92,12 +92,26 @@ def filter_new_instances(instance_list):
     return instance_id_dict   
 
 
+#assign ids to old instances
+def filter_old_instances(instance_list):
+    for instance in instance_list:
+        tags = instance.tags 
+        for tag in tags:
+            if tag['Value'] in service_names:
+                service_name = tag['Value']
+                for service in services:
+                    if service.name == service_name:
+                        service.instance_id = instance.id
+                        service.status = "UP"
+                        print "service: " + service_name + " is up" + "assigning: " + instance.id +"\n"
+
+
 
 
 #assigns new instances to crashed services and tag accordingly
 def assign_new_instances(ec2, instance_id_dict):
     #get the key set
-    keys = set(new_instance_dict.keys())
+    keys = set(instance_id_dict.keys())
 
     for service in services:
         if service.status == "DOWN":
@@ -121,13 +135,15 @@ def aws_check():
     instance_list = list(instances)
     instance_list = filter_chaosmonkey_instance(instance_list)
 
+    filter_old_instances(instance_list)
     new_instance_dict = filter_new_instances(instance_list)
     assign_new_instances(ec2, new_instance_dict)
 
+aws_check()
 
-scheduler = Scheduler()
-scheduler.add_cron_job(aws_check, minute=60)
-scheduler.start()
+#scheduler = Scheduler()
+#scheduler.add_cron_job(aws_check, minute=60)
+#scheduler.start()
 
 
 
